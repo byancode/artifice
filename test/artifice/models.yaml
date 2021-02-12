@@ -11,6 +11,7 @@ Entry:
     controller: api
   __class:
     extend: User
+  __model:
     appends: code, test
     autoincrement: false
     casts: code:string test:float

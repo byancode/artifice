@@ -2,18 +2,28 @@
 
 namespace Byancode\Artifice\Commands;
 
+use Blueprint\Blueprint;
 use Illuminate\Console\Command;
-use Symfony\Component\Yaml\Yaml;
+use Illuminate\Support\Arr;
 
 class BuildCommand extends Command
 {
     public $data = [];
+    public $blueprint;
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'artifice:build {--name=artifice} {--no-traits} {--force}';
+    protected $signature = 'artifice:build
+    {--name=artifice : Artifice yaml file }
+    {--draft=draft : The path to the draft file }
+    {--only= : Comma separated list of file classes to generate, skipping the rest }
+    {--skip= : Comma separated list of file classes to skip, generating the rest }
+    {--m|overwrite-migrations : Update existing migration files, if found }
+    {--default-route=api}
+    {--no-traits}
+    {--force}';
 
     /**
      * The console command description.
@@ -30,6 +40,7 @@ class BuildCommand extends Command
     public function __construct()
     {
         parent::__construct();
+        $this->blueprint = app(Blueprint::class);
     }
 
     /**
@@ -39,11 +50,24 @@ class BuildCommand extends Command
      */
     public function handle()
     {
-        $this->files();
-        print_r($this->draft());
+        $this->yamlFiles();
+        $this->generateDraft();
     }
 
-    public function draft()
+    public function generateDraft()
+    {
+        $data = $this->draftArray();
+        $data['cache'] = [];
+        $registry = $this->blueprint->analyze($data);
+
+        $only = array_filter(explode(',', $this->option('only')));
+        $skip = array_filter(explode(',', $this->option('skipe')));
+        $overwriteMigrations = $this->option('overwrite-migrations');
+
+        $this->blueprint->generate($registry, $only, $skip, $overwriteMigrations);
+    }
+
+    public function draftArray()
     {
         return [
             'controllers' => $this->data['controllers'] ?? [],
@@ -52,37 +76,45 @@ class BuildCommand extends Command
     }
     public function draftModels()
     {
-        return collect($this->data['models'] ?? [])->map(function ($value, $key) {
-            return collect($value)->except(['__build', '__class', '__index']);
-        })->all();
+        return array_map(function ($value) {
+            return Arr::except($value, ['__build', '__class', '__model', '__index']);
+        }, $this->data['models'] ?? []);
     }
-    public function files()
+    public function yamlFiles()
     {
-        $this->finder('artifice');
-        foreach ([
-            'controllers',
-            'models',
-            'routes',
-            'pivots',
-        ] as $name) {
-            $this->finder("artifice/$name", $name);
-        }
+        $artifice = $this->option('name');
+        $this->yamalSearch($artifice);
+        $this->yamalSearch("$artifice/*");
     }
-    public function finder(string $path, string $name = null)
+    public function yamalSearch(string $path)
     {
         $files = glob(base_path("$path.y*ml"));
         foreach ($files as $file) {
-            $this->parser($file, $name);
+            $this->yamlParse($file);
         }
     }
-    public function parser(string $file, string $name = null)
+    public function yamlParse(string $file)
     {
-        $data = Yaml::parseFile($file);
+        $content = file_get_contents($file);
+        $data = $this->blueprint->parse($content, false);
 
-        if (isset($name)) {
-            $this->data[$name] = array_merge($this->data[$name] ?? [], $data);
-        } else {
-            $this->data = array_merge($this->data, $data);
+        foreach ([
+            'controllers',
+            'models',
+            'pivots',
+        ] as $key) {
+            $this->data[$key] = array_merge($this->data[$key] ?? [], $data[$key] ?? []);
+        }
+
+        $values = array_values($data ?? []);
+        $keys = array_keys($data);
+
+        $matchs = preg_grep('/^routes/', $keys);
+        $default = $this->option('default-route');
+
+        foreach ($matchs as $key => $value) {
+            [$name, $subName] = explode('.', $value) + [null, $default];
+            $this->data[$name][$subName] = $values[$key];
         }
     }
 }

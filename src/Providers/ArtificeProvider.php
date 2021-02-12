@@ -2,11 +2,11 @@
 
 namespace Byancode\Artifice\Providers;
 
+use Blueprint\BlueprintServiceProvider;
 use Byancode\Artifice\Commands\BuildCommand;
 use Illuminate\Contracts\Support\DeferrableProvider;
-use Illuminate\Support\ServiceProvider;
 
-class ArtificeProvider extends ServiceProvider implements DeferrableProvider
+class ArtificeProvider extends BlueprintServiceProvider implements DeferrableProvider
 {
     /**
      * Bootstrap the application events.
@@ -15,11 +15,7 @@ class ArtificeProvider extends ServiceProvider implements DeferrableProvider
      */
     public function boot()
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                BuildCommand::class,
-            ]);
-        }
+        parent::boot();
     }
 
     /**
@@ -29,7 +25,14 @@ class ArtificeProvider extends ServiceProvider implements DeferrableProvider
      */
     public function register()
     {
-        # code ...
+        parent::register();
+        $this->app->bind('command.artifice.build', function ($app) {
+            return new BuildCommand($app['files']);
+        });
+
+        $this->commands([
+            BuildCommand::class,
+        ]);
     }
 
 }
