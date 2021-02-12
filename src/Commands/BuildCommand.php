@@ -20,10 +20,9 @@ class BuildCommand extends Command
     {--draft=draft : The path to the draft file }
     {--only= : Comma separated list of file classes to generate, skipping the rest }
     {--skip= : Comma separated list of file classes to skip, generating the rest }
-    {--m|overwrite-migrations : Update existing migration files, if found }
-    {--default-route=api}
-    {--no-traits}
-    {--force}';
+    {--force= : Comma separated list of file classes to override}
+    {--default-route=api : routers available: api, web}
+    {--no-traits}';
 
     /**
      * The console command description.
@@ -61,10 +60,9 @@ class BuildCommand extends Command
         $registry = $this->blueprint->analyze($data);
 
         $only = array_filter(explode(',', $this->option('only')));
-        $skip = array_filter(explode(',', $this->option('skipe')));
-        $overwriteMigrations = $this->option('overwrite-migrations');
+        $skip = array_filter(explode(',', $this->option('skip')));
 
-        $this->blueprint->generate($registry, $only, $skip, $overwriteMigrations);
+        $this->blueprint->generate($registry, $only, $skip, true);
     }
 
     public function draftArray()
@@ -83,10 +81,10 @@ class BuildCommand extends Command
     public function yamlFiles()
     {
         $artifice = $this->option('name');
-        $this->yamalSearch($artifice);
-        $this->yamalSearch("$artifice/*");
+        $this->yamlSearch($artifice);
+        $this->yamlSearch("$artifice/*");
     }
-    public function yamalSearch(string $path)
+    public function yamlSearch(string $path)
     {
         $files = glob(base_path("$path.y*ml"));
         foreach ($files as $file) {

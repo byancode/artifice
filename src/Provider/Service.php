@@ -1,12 +1,12 @@
 <?php
 
-namespace Byancode\Artifice\Providers;
+namespace Byancode\Artifice\Provider;
 
 use Blueprint\BlueprintServiceProvider;
 use Byancode\Artifice\Commands\BuildCommand;
 use Illuminate\Contracts\Support\DeferrableProvider;
 
-class ArtificeProvider extends BlueprintServiceProvider implements DeferrableProvider
+class Service extends BlueprintServiceProvider implements DeferrableProvider
 {
     /**
      * Bootstrap the application events.
@@ -26,9 +26,6 @@ class ArtificeProvider extends BlueprintServiceProvider implements DeferrablePro
     public function register()
     {
         parent::register();
-        $this->app->bind('command.artifice.build', function ($app) {
-            return new BuildCommand($app['files']);
-        });
 
         $this->commands([
             BuildCommand::class,
