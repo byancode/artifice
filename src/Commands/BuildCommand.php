@@ -3,6 +3,7 @@
 namespace Byancode\Artifice\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
@@ -13,7 +14,7 @@ class BuildCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'artifice:build {name} {--no-traits} {--force}';
+    protected $signature = 'artifice:build {--name=artifice} {--no-traits} {--force}';
 
     /**
      * The console command description.
@@ -40,13 +41,26 @@ class BuildCommand extends Command
     public function handle()
     {
         $this->files();
-        print_r($this->data);
+        print_r($this->draft());
+    }
+
+    public function draft()
+    {
+        return Arr::only($this->data, ['controllers']) + [
+            'models' => $this->draftModels(),
+        ];
+    }
+    public function draftModels()
+    {
+        return collect($this->data['models'] ?? [])->map(function ($value, $key) {
+            return collect($value)->except(['__build', '__class', '__index']);
+        })->all();
     }
     public function files()
     {
         $this->finder('artifice');
         foreach ([
-            'controller',
+            'controllers',
             'models',
             'routes',
             'pivots',

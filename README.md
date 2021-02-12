@@ -8,6 +8,14 @@ You can install the package via composer:
 composer require byancode/artifice
 ```
 
+### Register (for Laravel > 6.0)
+
+Register the service provider in `config/app.php`
+
+``` php
+Byancode\Artifice\Providers\ArtificeProvider::class,
+```
+
 ## Usage
 
 ``` bash 
