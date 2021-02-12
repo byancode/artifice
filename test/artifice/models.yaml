@@ -1,0 +1,21 @@
+Entry:
+  name: string
+  description: string
+  active: boolean default:0
+  relationships:
+    morphMany: Activity
+    hasMany: Portion
+  __build:
+    trait: false
+    observe: false
+    controller: api
+  __class:
+    extend: User
+    appends: code, test
+    autoincrement: false
+    casts: code:string test:float
+    dates:
+      created_at: datetime:Y-m-d
+  __index:
+    - unique:uuid,id
+    - unique:typeable_id,typeable_type
