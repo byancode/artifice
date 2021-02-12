@@ -72,15 +72,39 @@ class BuildCommand extends Command
     }
     public function remove_controller(string $name)
     {
-        echo "remove controller $name\n";
+        $file = app_path("Http/Controllers/$name.php");
+        file_exists($file) ? unlink($file) : null;
     }
     public function remove_model(string $name)
     {
-        echo "remove model $name\n";
+        foreach ($this->getModelFiles() as $file) {
+            file_exists($file) ? unlink($file) : null;
+        }
     }
     public function remove_pivot(string $name)
     {
-        echo "remove pivot $name\n";
+        foreach ($this->getPivotFiles() as $file) {
+            file_exists($file) ? unlink($file) : null;
+        }
+    }
+    public function getPivotFiles(string $name)
+    {
+        $files = [
+            app_path("Pivots/$name.php"),
+            app_path("Traits/Pivot{$name}Trait.php"),
+            app_path("Observers/Pivot{$name}Observer.php"),
+        ];
+        return $files;
+    }
+    public function getModelFiles(string $name)
+    {
+        $path = config('blueprint.models_namespace', 'Models');
+        $files = [
+            app_path("$path/$name.php"),
+            app_path("Traits/{$name}Trait.php"),
+            app_path("Observers/{$name}Observer.php"),
+        ];
+        return $files;
     }
     public function createCompileFile()
     {
