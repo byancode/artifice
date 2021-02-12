@@ -1,6 +1,6 @@
 <?php
 
-namespace Blueprint;
+namespace Byancode\Artifice\Providers;
 
 use Byancode\Artifice\Commands\BuildCommand;
 use Illuminate\Contracts\Support\DeferrableProvider;

@@ -3,7 +3,6 @@
 namespace Byancode\Artifice\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Arr;
 use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
@@ -46,7 +45,8 @@ class BuildCommand extends Command
 
     public function draft()
     {
-        return Arr::only($this->data, ['controllers']) + [
+        return [
+            'controllers' => $this->data['controllers'] ?? [],
             'models' => $this->draftModels(),
         ];
     }
