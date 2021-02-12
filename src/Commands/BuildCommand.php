@@ -87,7 +87,7 @@ class BuildCommand extends Command
         file_put_contents(
             $this->getCompileFile(),
             Yaml::dump(
-                $this->compiledArray(),
+                $this->compilingArray(),
                 5
             )
         );
