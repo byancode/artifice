@@ -3,6 +3,7 @@
 namespace Byancode\Artifice\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
@@ -53,7 +54,7 @@ class BuildCommand extends Command
     public function draftModels()
     {
         return collect($this->data['models'] ?? [])->map(function ($value, $key) {
-            return collect($value)->except(['__build', '__class', '__index']);
+            return Arr::except($value, ['__build', '__class', '__index']);
         })->all();
     }
     public function files()
