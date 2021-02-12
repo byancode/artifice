@@ -9,7 +9,7 @@ models:
     __build:
       observe: false
       trait: false
-      controller: api
+      controller: false
     __class:
       extend: User
       autoincrement: false

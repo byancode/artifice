@@ -5,6 +5,8 @@ namespace Byancode\Artifice\Commands;
 use Blueprint\Blueprint;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
 {
@@ -50,7 +52,80 @@ class BuildCommand extends Command
     public function handle()
     {
         $this->yamlFiles();
+        $this->cleanerFiles();
         $this->generateDraft();
+        $this->createCompileFile();
+    }
+
+    public function cleanerFiles()
+    {
+        $compiled = $this->compiledArray();
+        $current = $this->compilingArray();
+        foreach ($compiled as $key => $list) {
+            foreach ($list as $name) {
+                if (in_array($name, $current[$key]) === false) {
+                    $type = substr($key, 0, -1);
+                    call_user_func([$this, "remove_$type"], $name);
+                }
+            }
+        }
+    }
+    public function remove_controller(string $name)
+    {
+        echo "remove controller $name\n";
+    }
+    public function remove_model(string $name)
+    {
+        echo "remove model $name\n";
+    }
+    public function remove_pivot(string $name)
+    {
+        echo "remove pivot $name\n";
+    }
+    public function createCompileFile()
+    {
+        file_put_contents(
+            $this->getCompileFile(),
+            Yaml::dump(
+                $this->compiledArray(),
+                5
+            )
+        );
+    }
+    public function getCompileFile()
+    {
+        return base_path('.artifice');
+    }
+    public function compiledArray()
+    {
+        $file = $this->getCompileFile();
+        if (file_exists($file) === true) {
+            return Yaml::parseFile($file, 5);
+        } else {
+            return [];
+        }
+    }
+
+    public function compilingArray()
+    {
+        return [
+            'models' => $this->modelNames(),
+            'pivots' => $this->pivotNames(),
+            'controllers' => $this->controllerNames(),
+        ];
+    }
+
+    public function modelNames()
+    {
+        return array_keys($this->data['models'] ?? []);
+    }
+    public function pivotNames()
+    {
+        return array_keys($this->data['pivots'] ?? []);
+    }
+    public function controllerNames()
+    {
+        return array_keys($this->data['controllers'] ?? []);
     }
 
     public function generateDraft()
