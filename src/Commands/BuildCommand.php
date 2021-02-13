@@ -56,7 +56,6 @@ class BuildCommand extends Command
         $this->generateDraft();
         $this->createCompileFile();
     }
-
     public function cleanerFiles()
     {
         $compiled = $this->compiledArray();
@@ -77,34 +76,38 @@ class BuildCommand extends Command
     }
     public function remove_model(string $name)
     {
-        foreach ($this->getModelFiles() as $file) {
+        foreach ($this->getModelFiles($name) as $file) {
             file_exists($file) ? unlink($file) : null;
         }
     }
     public function remove_pivot(string $name)
     {
-        foreach ($this->getPivotFiles() as $file) {
+        foreach ($this->getPivotFiles($name) as $file) {
             file_exists($file) ? unlink($file) : null;
         }
     }
     public function getPivotFiles(string $name)
     {
-        $files = [
+        return [
             app_path("Pivots/$name.php"),
-            app_path("Traits/Pivot{$name}Trait.php"),
-            app_path("Observers/Pivot{$name}Observer.php"),
+            app_path("Traits/{$name}Trait.php"),
+            app_path("Observers/{$name}Observer.php"),
         ];
-        return $files;
     }
     public function getModelFiles(string $name)
     {
         $path = config('blueprint.models_namespace', 'Models');
-        $files = [
-            app_path("$path/$name.php"),
-            app_path("Traits/{$name}Trait.php"),
-            app_path("Observers/{$name}Observer.php"),
-        ];
-        return $files;
+        $database = (string) Str::of($name)->plural()->lower();
+        return array_merge(
+            [
+                app_path("$path/$name.php"),
+                app_path("Traits/{$name}Trait.php"),
+                app_path("Http/Controllers/{$name}Controller.php"),
+                app_path("Observers/{$name}Observer.php"),
+                base_path("database/factories/{$name}Factory.php"),
+            ],
+            glob("database/migrations/*_create_{$database}_table.php")
+        );
     }
     public function createCompileFile()
     {
