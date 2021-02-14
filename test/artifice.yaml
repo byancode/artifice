@@ -27,9 +27,7 @@ models:
       - unique:typeable_id,typeable_type
 
 pivots:
-  User,Entry:
-    price: nullable decimal:10,2
-  Userable:
+  Entry,User:
     price: nullable decimal:10,2
 
 routes.api:

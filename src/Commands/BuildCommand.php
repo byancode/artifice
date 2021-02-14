@@ -54,19 +54,23 @@ class BuildCommand extends Command
         $this->yamlFiles();
         $this->cleanerFiles();
         $this->generateDraft();
+        $this->generatePivots();
         $this->createCompileFile();
     }
     public function cleanerFiles()
     {
         $compiled = $this->compiledArray();
         $current = $this->compilingArray();
-        foreach ($compiled as $key => $list) {
-            foreach ($list as $name) {
-                if (in_array($name, $current[$key]) === false) {
-                    $type = substr($key, 0, -1);
-                    call_user_func([$this, "remove_$type"], $name);
-                }
-            }
+        $models = array_merge(
+            $compiled['models'] ?? [],
+            $current['models'] ?? [],
+        );
+        foreach ($models as $model) {
+            $this->remove_model($model);
+        }
+        foreach ($this->getAllPivotFiles($compiled) as $file) {
+            echo $file . PHP_EOL;
+            file_exists($file) ? unlink($file) : null;
         }
     }
     public function remove_controller(string $name)
@@ -86,18 +90,50 @@ class BuildCommand extends Command
             file_exists($file) ? unlink($file) : null;
         }
     }
+    public function remove_migrations(string $name)
+    {
+        foreach ($this->getMigrationsByModel($name) as $file) {
+            file_exists($file) ? unlink($file) : null;
+        }
+    }
+    public function getAllPivotFiles(array $compiled)
+    {
+        $items = [];
+        $pivots = array_merge(
+            $compiled['pivots'] ?? [],
+            $this->pivotNames()
+        );
+        $pivots = array_unique($pivots);
+        foreach ($pivots as $models) {
+            $models = preg_split('/\W+/', $models);
+            foreach ($models as $model) {
+                foreach ($models as $relation) {
+                    $name = $this->getPivotName($model, $relation);
+                    $items[] = $this->getPivotFiles($name);
+                }
+            }
+        }
+        return call_user_func_array('array_merge', $items);
+    }
     public function getPivotFiles(string $name)
     {
-        return [
-            app_path("Pivots/$name.php"),
-            app_path("Traits/{$name}Trait.php"),
-            app_path("Observers/{$name}Observer.php"),
-        ];
+        $table = Str::kebab($name);
+        $table = str_replace('-', '_', $table);
+        $path = config('blueprint.models_namespace', 'Models');
+        return array_merge(
+            [
+                app_path("$path/$name.php"),
+                app_path("Traits/{$name}Trait.php"),
+                app_path("Observers/{$name}Observer.php"),
+            ],
+            glob(base_path("database/migrations/*_create_{$table}_table.php")),
+        );
     }
     public function getModelFiles(string $name)
     {
         $path = config('blueprint.models_namespace', 'Models');
-        $database = (string) Str::of($name)->plural()->lower();
+        $plural = (string) Str::of($name)->plural()->lower();
+        $singular = (string) Str::of($name)->singular()->lower();
         return array_merge(
             [
                 app_path("$path/$name.php"),
@@ -106,7 +142,10 @@ class BuildCommand extends Command
                 app_path("Observers/{$name}Observer.php"),
                 base_path("database/factories/{$name}Factory.php"),
             ],
-            glob("database/migrations/*_create_{$database}_table.php")
+            glob(base_path("database/migrations/*_create_{$plural}_table.php")),
+            glob(base_path("database/migrations/*_create_{$singular}_*_table.php")),
+            glob(base_path("database/migrations/*_create_*_{$singular}_table.php")),
+            glob(base_path("database/migrations/*_create_*_{$singular}able_table.php")),
         );
     }
     public function createCompileFile()
@@ -154,10 +193,13 @@ class BuildCommand extends Command
     {
         return array_keys($this->data['controllers'] ?? []);
     }
-
     public function generateDraft()
     {
-        $data = $this->draftArray();
+        $this->generate($this->draftArray());
+    }
+
+    public function generate(array $data)
+    {
         $data['cache'] = [];
         $registry = $this->blueprint->analyze($data);
 
@@ -165,6 +207,74 @@ class BuildCommand extends Command
         $skip = array_filter(explode(',', $this->option('skip')));
 
         $this->blueprint->generate($registry, $only, $skip, true);
+    }
+    public function getPivotRaw(string $model, string $relation)
+    {
+        $name = [$model, $relation];
+        sort($name);
+        return $name;
+    }
+    public function getPivotName(string $model, string $relation)
+    {
+        $name = [$model, $relation];
+        sort($name);
+        return join('', $name);
+    }
+    public function getMigrationTable(string $model, string $relation)
+    {
+        $name = [$model, $relation];
+        sort($name);
+        return strtolower(join('_', $name));
+    }
+    public function generatePivots()
+    {
+        $items = [];
+        $pivots = $this->data['pivots'] ?? [];
+        foreach ($pivots as $models => $pivot) {
+            $models = preg_split('/\W+/', $models);
+            foreach ($models as $a => $model) {
+                if (empty($model)) {
+                    continue;
+                }
+                foreach ($models as $b => $relation) {
+                    if ($a === $b) {
+                        continue;
+                    }
+                    $name = $this->getPivotName($model, $relation);
+                    $key = strtolower("{$relation}_id");
+                    $pivot[$key] = 'id foreign';
+                    $key = strtolower("{$model}_id");
+                    $pivot[$key] = 'id foreign';
+                    $items[$name] = $pivot;
+                }
+            }
+        }
+        $this->generate([
+            'models' => $items,
+            'cache' => [],
+        ]);
+        foreach ($items as $new_model => $data) {
+            $new_table = str_replace('-', '_', Str::kebab($new_model));
+            $files = glob(base_path("database/migrations/*_create_{$new_table}_table.php"));
+            foreach ($files as $file) {
+                unlink($file);
+            }
+            $old_table = Str::plural($new_table, 2);
+            $old_model = Str::plural($new_model, 2);
+            $files = glob(base_path("database/migrations/*_create_{$old_table}_table.php"));
+            foreach ($files as $old_file) {
+                $new_file = str_replace($old_table, $new_table, $old_file);
+                $content = file_get_contents($old_file);
+                $content = str_replace($old_table, $new_table, $content);
+                $content = str_replace($old_model, $new_model, $content);
+                file_put_contents($old_file, $content);
+                rename(
+                    $old_file,
+                    $new_file
+                );
+                break;
+            }
+        }
     }
 
     public function draftArray()
