@@ -3,7 +3,9 @@
 namespace Byancode\Artifice\Commands;
 
 use Blueprint\Blueprint;
+use Byancode\Artifice\Modificator\ClassModifier;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Symfony\Component\Yaml\Yaml;
@@ -119,24 +121,27 @@ class BuildCommand extends Command
     {
         $table = Str::kebab($name);
         $table = str_replace('-', '_', $table);
-        $path = config('blueprint.models_namespace', 'Models');
         return array_merge(
             [
-                app_path("$path/$name.php"),
+                $this->getPathModel($name),
                 app_path("Traits/{$name}Trait.php"),
                 app_path("Observers/{$name}Observer.php"),
             ],
             glob(base_path("database/migrations/*_create_{$table}_table.php")),
         );
     }
-    public function getModelFiles(string $name)
+    public function getPathModel(string $name)
     {
         $path = config('blueprint.models_namespace', 'Models');
+        return app_path("$path/$name.php");
+    }
+    public function getModelFiles(string $name)
+    {
         $plural = (string) Str::of($name)->plural()->lower();
         $singular = (string) Str::of($name)->singular()->lower();
         return array_merge(
             [
-                app_path("$path/$name.php"),
+                $this->getPathModel($name),
                 app_path("Traits/{$name}Trait.php"),
                 app_path("Http/Controllers/{$name}Controller.php"),
                 app_path("Observers/{$name}Observer.php"),
@@ -272,6 +277,10 @@ class BuildCommand extends Command
                     $old_file,
                     $new_file
                 );
+                $file = $this->getPathModel($new_model);
+                $modifier = new ClassModifier($file);
+                $modifier->setExtends(Pivot::class);
+                $modifier->save();
                 break;
             }
         }
