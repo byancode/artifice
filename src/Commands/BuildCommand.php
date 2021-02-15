@@ -62,12 +62,22 @@ class BuildCommand extends Command
     {
         $compiled = $this->compiledArray();
         $currents = $this->compilingArray();
+        $models = array_unique(array_merge(
+            $compiled['models'] ?? [],
+            $currents['models'] ?? [],
+        ));
         $removeds = array_diff(
             $compiled['models'] ?? [],
             $currents['models'] ?? [],
         );
-        foreach ($removeds as $model) {
+        foreach ($models as $model) {
             $this->remove_model($model);
+        }
+        foreach ($removeds as $model) {
+            foreach ($this->getModificableModelFiles($model) as $file) {
+                echo $file . PHP_EOL;
+                file_exists($file) ? unlink($file) : null;
+            }
         }
         foreach ($this->getAllPivotFiles($compiled) as $file) {
             echo $file . PHP_EOL;
@@ -134,6 +144,14 @@ class BuildCommand extends Command
         $path = config('blueprint.models_namespace', 'Models');
         return app_path("$path/$name.php");
     }
+    public function getModificableModelFiles(string $name)
+    {
+        return [
+            app_path("Traits/{$name}Trait.php"),
+            app_path("Http/Controllers/{$name}Controller.php"),
+            app_path("Observers/{$name}Observer.php"),
+        ];
+    }
     public function getModelFiles(string $name)
     {
         $plural = (string) Str::of($name)->plural()->lower();
@@ -141,9 +159,6 @@ class BuildCommand extends Command
         return array_merge(
             [
                 $this->getPathModel($name),
-                app_path("Traits/{$name}Trait.php"),
-                app_path("Http/Controllers/{$name}Controller.php"),
-                app_path("Observers/{$name}Observer.php"),
                 base_path("database/factories/{$name}Factory.php"),
             ],
             glob(base_path("database/migrations/*_create_{$plural}_table.php")),
