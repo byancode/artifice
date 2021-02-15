@@ -50,7 +50,7 @@ class ClassModifier
         if (empty($as) === true) {
             $as = $name;
         }
-        $this->replace('/(\v\s{2,}use )/', "$1$as, ");
+        $this->replace('/(\v\s{2,}use [^\;]+)/s', "$1, $as");
         return $this;
     }
     public function save()
