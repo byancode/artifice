@@ -19,8 +19,14 @@ class BuildCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'artifice:build {--name=artifice : Artifice yaml files}';
-
+    protected $signature = 'artifice:build
+    {--name=artifice : Artifice yaml file }
+    {--draft=draft : The path to the draft file }
+    {--only= : Comma separated list of file classes to generate, skipping the rest }
+    {--skip= : Comma separated list of file classes to skip, generating the rest }
+    {--force= : Comma separated list of file classes to override}
+    {--default-route=api : routers available: api, web}
+    {--no-traits}';
     /**
      * The console command description.
      *

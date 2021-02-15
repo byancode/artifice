@@ -9,10 +9,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "creating" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function creating({{ model }} {{ variable }})
+    public function creating({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -20,10 +20,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "created" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function created({{ model }} {{ variable }})
+    public function created({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -31,10 +31,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "updating" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function updating({{ model }} {{ variable }})
+    public function updating({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -42,10 +42,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "updated" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function updated({{ model }} {{ variable }})
+    public function updated({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -53,10 +53,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "deleting" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function deleting({{ model }} {{ variable }})
+    public function deleting({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -64,10 +64,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "deleted" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function deleted({{ model }} {{ variable }})
+    public function deleted({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -75,10 +75,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "restored" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function restored({{ model }} {{ variable }})
+    public function restored({{ model }} ${{ variable }})
     {
         # code ...
     }
@@ -86,10 +86,10 @@ class {{ model }}Observer
     /**
      * Handle the {{ model }} "force deleted" event.
      *
-     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @param  \App\Models\{{ model }}  ${{ variable }}
      * @return void
      */
-    public function forceDeleted({{ model }} {{ variable }})
+    public function forceDeleted({{ model }} ${{ variable }})
     {
         # code ...
     }

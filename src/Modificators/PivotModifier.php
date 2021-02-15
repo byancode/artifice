@@ -11,10 +11,4 @@ class PivotModifier extends ModelModifier
         $modifier->set('__model.pivot', true);
         $modifier->save();
     }
-    public static function createMany(array $data)
-    {
-        foreach ($data as $key => $value) {
-            static::create($key, $value, $pivot);
-        }
-    }
 }

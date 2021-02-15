@@ -6,16 +6,16 @@ class ModelModifier extends ClassModifier
     public static function getPath(string $model)
     {
         $path = config('blueprint.models_namespace', 'Models');
-        return app_path("$path/$name.php");
+        return app_path("$path/$model.php");
     }
-    public static function create(string $name, array $data, bool $pivot = false)
+    public static function create(string $name, array $data)
     {
         $file = self::getPath($name);
         $modifier = new static($file);
         $modifier->setModel($name, $data);
         $modifier->save();
     }
-    public static function createMany(array $data, bool $pivot = false)
+    public static function createMany(array $data)
     {
         foreach ($data as $key => $value) {
             static::create($key, $value, $pivot);
@@ -49,7 +49,7 @@ class ModelModifier extends ClassModifier
     }
     public function stubPath(string $name)
     {
-        return base_path("vendor/byancode/artifice/stubs/$name.stub");
+        return base_path("vendor/byancode/artifice/src/stubs/$name.stub");
     }
 
     public function isPivot()
