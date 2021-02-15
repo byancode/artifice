@@ -60,6 +60,6 @@ class ClassModifier
 
     public function append(string $content)
     {
-        return $this->replace('/(\v\}\s+)$/s', "$content$1");
+        return $this->replace('/(\}\s+)$/s', "$content\n$1");
     }
 }

@@ -4,7 +4,6 @@ namespace App\Traits;
 trait {{ model }}Trait
 {
     /**
-     * Agrega funciones y
-     * Attributos addicionales 
+     * Agrega funciones y Attributos addicionales 
      */
 }
