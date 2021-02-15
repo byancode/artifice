@@ -92,6 +92,8 @@ class ModelModifier extends ClassModifier
         if (file_exists($file)) {
             if ($this->bool('__build.trait') === false) {
                 unlink($file);
+            } else {
+                $this->addTrait("App\\Traits\\{$this->name}Trait");
             }
             return;
         }
@@ -108,6 +110,7 @@ class ModelModifier extends ClassModifier
         $content = str_replace('{{ model }}', $this->name, $content);
 
         if ($this->bool('__build.trait')) {
+            $this->addTrait("App\\Traits\\{$this->name}Trait");
             file_put_contents($file, $content);
         }
     }
@@ -133,15 +136,14 @@ class ModelModifier extends ClassModifier
         $content = file_get_contents($this->stubPath('policy'));
         $content = str_replace('{{ model }}', $this->name, $content);
 
-        if ($this->bool('__build.policy')) {
-            file_put_contents($file, $content);
-        }
+        file_put_contents($file, $content);
     }
 
     public function save()
     {
         if ($this->isAuth()) {
             $this->setExtends('Illuminate\Foundation\Auth\User', 'Authenticatable');
+            $this->addTrait('Illuminate\Notifications\Notifiable');
         } else if ($this->isPivot()) {
             $this->setExtends('Illuminate\Database\Eloquent\Relations\Pivot');
         }

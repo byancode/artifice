@@ -43,6 +43,16 @@ class ClassModifier
         return $this->replace("/\vuse $class;(?:[ \r]+)?/", '', 1)
             ->replace('/(\vuse )/', "$1$class;$1", 1);
     }
+    public function addTrait(string $class, string $as = null)
+    {
+        $this->addClass($class, $as);
+        $name = $this->getClassName($class);
+        if (empty($as) === true) {
+            $as = $name;
+        }
+        $this->replace('/(\v\s{2,}use )/', "$1$as, ");
+        return $this;
+    }
     public function save()
     {
         file_put_contents($this->file, $this->content);
