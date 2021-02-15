@@ -1,9 +1,10 @@
 <?php
 namespace App\Traits;
 
-use App\Observers\{{ model }}Observer;
-
 trait {{ model }}Trait
 {
-    
+    /**
+     * Agrega funciones y
+     * Attributos addicionales 
+     */
 }

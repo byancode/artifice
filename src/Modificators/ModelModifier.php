@@ -61,14 +61,25 @@ class ModelModifier extends ClassModifier
         return $this->bool('__model.auth');
     }
 
+    public function insertOberver()
+    {
+        $stub = $this->stubPath('function.observer');
+        $content = file_get_contents($stub);
+        $content = str_replace('{{ model }}', $this->name, $content);
+        $this->append($content);
+    }
+
     public function createObserver()
     {
         $path = app_path('Observers');
         $file = app_path("Observers/{$this->name}Observer.php");
+        $fnpath = $this->stubPath('function.observer');
 
         if (file_exists($file)) {
             if ($this->bool('__build.observe') === false) {
                 unlink($file);
+            } else {
+                $this->insertOberver();
             }
             return;
         }
@@ -81,6 +92,7 @@ class ModelModifier extends ClassModifier
 
         if ($this->bool('__build.observe')) {
             file_put_contents($file, $content);
+            $this->insertOberver();
         }
     }
 
@@ -100,13 +112,7 @@ class ModelModifier extends ClassModifier
 
         !is_dir($path) && mkdir($path, 0777);
 
-        if ($this->bool('__build.observe')) {
-            $stubFile = $this->stubPath('trait.observer');
-        } else {
-            $stubFile = $this->stubPath('trait');
-        }
-
-        $content = file_get_contents($stubFile);
+        $content = file_get_contents($this->stubPath('trait'));
         $content = str_replace('{{ model }}', $this->name, $content);
 
         if ($this->bool('__build.trait')) {

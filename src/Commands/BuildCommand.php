@@ -150,6 +150,7 @@ class BuildCommand extends Command
             app_path("Traits/{$name}Trait.php"),
             app_path("Http/Controllers/{$name}Controller.php"),
             app_path("Observers/{$name}Observer.php"),
+            app_path("Policies/{$name}Policy.php"),
         ];
     }
     public function getModelFiles(string $name)

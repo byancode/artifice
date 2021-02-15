@@ -57,4 +57,9 @@ class ClassModifier
     {
         file_put_contents($this->file, $this->content);
     }
+
+    public function append(string $content)
+    {
+        return $this->replace('/(\v\}\s+)$/s', "$content$1");
+    }
 }

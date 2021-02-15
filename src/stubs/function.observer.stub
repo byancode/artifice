@@ -1,0 +1,4 @@
+    protected static function booted()
+    {
+        static::observe(\App\Observers\{{ model }}Observer::class);
+    }
