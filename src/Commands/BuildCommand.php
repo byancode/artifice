@@ -61,12 +61,12 @@ class BuildCommand extends Command
     public function cleanerFiles()
     {
         $compiled = $this->compiledArray();
-        $current = $this->compilingArray();
-        $models = array_merge(
+        $currents = $this->compilingArray();
+        $removeds = array_diff(
             $compiled['models'] ?? [],
-            $current['models'] ?? [],
+            $currents['models'] ?? [],
         );
-        foreach ($models as $model) {
+        foreach ($removeds as $model) {
             $this->remove_model($model);
         }
         foreach ($this->getAllPivotFiles($compiled) as $file) {
