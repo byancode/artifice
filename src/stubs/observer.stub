@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Observers;
+
+use App\Models\{{ model }};
+
+class {{ model }}Observer
+{
+    /**
+     * Handle the {{ model }} "creating" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function creating({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "created" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function created({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "updating" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function updating({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "updated" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function updated({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "deleting" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function deleting({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "deleted" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function deleted({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "restored" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function restored({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+
+    /**
+     * Handle the {{ model }} "force deleted" event.
+     *
+     * @param  \App\Models\{{ model }}  {{ variable }}
+     * @return void
+     */
+    public function forceDeleted({{ model }} {{ variable }})
+    {
+        # code ...
+    }
+}

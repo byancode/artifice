@@ -3,9 +3,9 @@
 namespace Byancode\Artifice\Commands;
 
 use Blueprint\Blueprint;
-use Byancode\Artifice\Modificator\ClassModifier;
+use Byancode\Artifice\Modificators\ModelModifier;
+use Byancode\Artifice\Modificators\PivotModifier;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Symfony\Component\Yaml\Yaml;
@@ -19,14 +19,7 @@ class BuildCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'artifice:build
-    {--name=artifice : Artifice yaml file }
-    {--draft=draft : The path to the draft file }
-    {--only= : Comma separated list of file classes to generate, skipping the rest }
-    {--skip= : Comma separated list of file classes to skip, generating the rest }
-    {--force= : Comma separated list of file classes to override}
-    {--default-route=api : routers available: api, web}
-    {--no-traits}';
+    protected $signature = 'artifice:build {--name=artifice : Artifice yaml files}';
 
     /**
      * The console command description.
@@ -201,6 +194,7 @@ class BuildCommand extends Command
     public function generateDraft()
     {
         $this->generate($this->draftArray());
+        ModelModifier::createMany($this->data['models'] ?? []);
     }
 
     public function generate(array $data)
@@ -245,12 +239,13 @@ class BuildCommand extends Command
                     if ($a === $b) {
                         continue;
                     }
+                    $temp = [];
                     $name = $this->getPivotName($model, $relation);
                     $key = strtolower("{$relation}_id");
-                    $pivot[$key] = 'id foreign';
+                    $temp[$key] = 'id foreign';
                     $key = strtolower("{$model}_id");
-                    $pivot[$key] = 'id foreign';
-                    $items[$name] = $pivot;
+                    $temp[$key] = 'id foreign';
+                    $items[$name] = $pivot + $temp;
                 }
             }
         }
@@ -277,13 +272,10 @@ class BuildCommand extends Command
                     $old_file,
                     $new_file
                 );
-                $file = $this->getPathModel($new_model);
-                $modifier = new ClassModifier($file);
-                $modifier->setExtends(Pivot::class);
-                $modifier->save();
                 break;
             }
         }
+        PivotModifier::createMany($items);
     }
 
     public function draftArray()

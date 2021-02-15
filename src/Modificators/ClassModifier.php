@@ -1,20 +1,23 @@
 <?php
-namespace Byancode\Artifice\Modificator;
+namespace Byancode\Artifice\Modificators;
 
 class ClassModifier
 {
     public $file;
     public $content;
-    public function __contructor(string $file)
+    public function __construct(string $file)
     {
         $this->file = $file;
         $this->content = file_get_contents($file);
     }
-    public function setExtends(string $class)
+    public function setExtends(string $class, string $as = null)
     {
-        $this->addClass($class);
+        $this->addClass($class, $as);
         $name = $this->getClassName($class);
-        $this->replace('/ extends\s+(\w+)/', "extends $name");
+        if (empty($as) === true) {
+            $as = $name;
+        }
+        $this->replace('/( extends\s+)(\w+)/', "$1$as");
         return $this;
     }
     public function match(string $regexp)
@@ -32,9 +35,13 @@ class ClassModifier
         $parts = explode('\\', $class);
         return end($parts);
     }
-    public function addClass(string $class)
+    public function addClass(string $class, string $as = null)
     {
-        return $this->replace('/(\vuse )/', "$1$class$1", 1);
+        if (isset($as) === true) {
+            $class = "$class as $as";
+        }
+        return $this->replace("/\vuse $class;(?:[ \r]+)?/", '', 1)
+            ->replace('/(\vuse )/', "$1$class;$1", 1);
     }
     public function save()
     {

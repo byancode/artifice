@@ -10,36 +10,44 @@ models:
     __build:
       observe: false
       trait: false
-      controller: false
     __class:
       extend: User
       traits:
         - NameSpace\Other\ClassTrait
     __model:
-      autoincrement: false
+      autoIncrement: false
       appends: code, test
-      hidden: password
-      casts: code:string test:float
+      hidden: password, test
+      casts:
+        code: string
+        test: float
       dates:
         created_at: datetime:Y-m-d
     __index:
-      - unique:uuid,id
-      - unique:typeable_id,typeable_type
+      - unique: uuid, id
+      - unique: typeable_id, typeable_type
 
 pivots:
   Entry,User:
     price: nullable decimal:10,2
 
 routes.api:
-  ^test/{id}:
-    group:
-      middleware: auth:api
+  /user/{user}:
+    get: UserController@index
+
+    where:
+      user: ^[0-9]+$
+
+    + auth:api:
       post: UserController@create
       put: UserController@update
       delete: UserController@remove
-    get:
-      controller: UserController@index
-      where:
-        id: ^[0-9]+$
-    ^data/{id}:
+
+    /post/{post}:
       post: UserController@create
+
+      where:
+        post: ^[0-9]+$
+
+  /owner + auth:owner:
+    get: UserController@create
