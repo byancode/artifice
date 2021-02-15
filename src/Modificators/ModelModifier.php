@@ -18,7 +18,7 @@ class ModelModifier extends ClassModifier
     public static function createMany(array $data)
     {
         foreach ($data as $key => $value) {
-            static::create($key, $value, $pivot);
+            static::create($key, $value);
         }
     }
 
