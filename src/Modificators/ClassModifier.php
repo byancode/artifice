@@ -22,8 +22,7 @@ class ClassModifier
     }
     public function match(string $regexp)
     {
-        preg_match($regexp, $this->content, $match);
-        return empty($match) === false;
+        return preg_match($regexp, $this->content) >= 1;
     }
     public function replace(string $regexp, string $value, int $limit = -1)
     {
@@ -65,6 +64,6 @@ class ClassModifier
 
     public function insertAfterTrait(string $content)
     {
-        return $this->replace('/(\vclass .* use[^\;]+;)/s', "$1\n\n$content");
+        return $this->replace('/(\vclass .*\v\s+use [^\;]+;)/s', "$1\n\n$content");
     }
 }

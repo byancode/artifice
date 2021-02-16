@@ -4,5 +4,5 @@
      * @var array
      */
     protected $hidden = [
-        {{ values }}
+{{ values }}
     ];

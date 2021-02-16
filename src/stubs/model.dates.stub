@@ -4,5 +4,5 @@
      * @var array
      */
     protected $dates = [
-        {{ values }}
+{{ values }}
     ];

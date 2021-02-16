@@ -147,8 +147,8 @@ class ModelModifier extends ClassModifier
 
     public function aditionalTraits()
     {
-        if ($this->bool('__build.traits')) {
-            $data = $this->get('__build.traits') ?? [];
+        if ($this->bool('__class.traits')) {
+            $data = $this->get('__class.traits') ?? [];
             if (is_array($data)) {
                 foreach ($data as $value) {
                     if (is_string($value)) {
@@ -164,50 +164,67 @@ class ModelModifier extends ClassModifier
     }
     public function additionalCasts()
     {
-        if ($this->bool('__build.casts')) {
-            $data = $this->get('__build.casts') ?? [];
+        if ($this->bool('__model.casts')) {
+            $data = $this->get('__model.casts') ?? [];
+            $dir = config('blueprint.models_namespace');
+            if (isset($dir)) {
+                $class = "App\\{$dir}\\{$this->name}";
+            } else {
+                $class = "App\\{$this->name}";
+            }
+            $casts = $class::make()->getCasts();
             if (is_array($data)) {
                 $values = [];
-                foreach ($data as $key => $value) {
+                foreach (array_merge($casts, $data) as $key => $value) {
                     $file = $this->stubPath('model.array.key.value');
                     $content = file_get_contents($file);
                     $value = var_export($value, true);
+                    $content = str_replace('{{ key }}', $key, $content);
                     $content = str_replace('{{ value }}', trim($value), $content);
                     $values[] = $content;
                 }
 
-                $file = $this->stubPath('model.casts');
-                $content = file_get_contents($file);
-                $content = str_replace('{{ values }}', join("\n", $values), $content);
-                $this->insertAfterTrait($content);
+                if ($this->matchArray('casts') === false) {
+                    $file = $this->stubPath('model.casts');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ values }}', join("\n", $values), $content);
+                    $this->insertAfterTrait($content);
+                } else {
+                    $this->setArray('casts', join("\n", $values));
+                }
             }
         }
     }
     public function additionalDates()
     {
-        if ($this->bool('__build.dates')) {
-            $data = $this->get('__build.dates') ?? [];
+        if ($this->bool('__model.dates')) {
+            $data = $this->get('__model.dates') ?? [];
             if (is_array($data)) {
                 $values = [];
                 foreach ($data as $key => $value) {
                     $file = $this->stubPath('model.array.key.value');
                     $content = file_get_contents($file);
                     $value = var_export($value, true);
+                    $content = str_replace('{{ key }}', $key, $content);
                     $content = str_replace('{{ value }}', trim($value), $content);
+                    $this->addInArray('dates', $content);
                     $values[] = $content;
                 }
 
-                $file = $this->stubPath('model.dates');
-                $content = file_get_contents($file);
-                $content = str_replace('{{ values }}', join("\n", $values), $content);
-                $this->insertAfterTrait($content);
+                if ($this->matchArray('dates') === false) {
+                    $file = $this->stubPath('model.dates');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ key }}', $key, $content);
+                    $content = str_replace('{{ values }}', join("\n", $values), $content);
+                    $this->insertAfterTrait($content);
+                }
             }
         }
     }
     public function additionalHidden()
     {
-        if ($this->bool('__build.hidden')) {
-            $data = $this->get('__build.hidden') ?? '';
+        if ($this->bool('__model.hidden')) {
+            $data = $this->get('__model.hidden') ?? '';
             $data = preg_split('/\W+/', strval($data));
             if (is_array($data)) {
                 $values = [];
@@ -215,20 +232,23 @@ class ModelModifier extends ClassModifier
                     $file = $this->stubPath('model.array.value');
                     $content = file_get_contents($file);
                     $content = str_replace('{{ value }}', strval($value), $content);
+                    $this->addInArray('hidden', $content);
                     $values[] = $content;
                 }
 
-                $file = $this->stubPath('model.dates');
-                $content = file_get_contents($file);
-                $content = str_replace('{{ values }}', join("\n", $values), $content);
-                $this->insertAfterTrait($content);
+                if ($this->matchArray('hidden') === false) {
+                    $file = $this->stubPath('model.hidden');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ values }}', join("\n", $values), $content);
+                    $this->insertAfterTrait($content);
+                }
             }
         }
     }
     public function additionalAppends()
     {
-        if ($this->bool('__build.appends')) {
-            $data = $this->get('__build.appends') ?? '';
+        if ($this->bool('__model.appends')) {
+            $data = $this->get('__model.appends') ?? '';
             $data = preg_split('/\W+/', strval($data));
             if (is_array($data)) {
                 $values = [];
@@ -236,23 +256,42 @@ class ModelModifier extends ClassModifier
                     $file = $this->stubPath('model.array.value');
                     $content = file_get_contents($file);
                     $content = str_replace('{{ value }}', strval($value), $content);
+                    $this->addInArray('appends', $content);
                     $values[] = $content;
                 }
 
-                $file = $this->stubPath('model.appends');
-                $content = file_get_contents($file);
-                $content = str_replace('{{ values }}', join("\n", $values), $content);
-                $this->insertAfterTrait($content);
+                if ($this->matchArray('appends') === false) {
+                    $file = $this->stubPath('model.appends');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ values }}', join("\n", $values), $content);
+                    $this->insertAfterTrait($content);
+                }
             }
         }
     }
     public function defineAutoIncrement()
     {
+        $value = $this->get('__model.autoIncrement');
+
+        if (is_bool($value) === false) {
+            return;
+        }
         $file = $this->stubPath('model.autoincrement');
         $content = file_get_contents($file);
-        $value = $this->bool('__model.autoIncrement') ? 'true' : 'false';
-        $content = str_replace('{{ value }}', $value, $content);
+        $content = str_replace('{{ value }}', $value ? 'true' : 'false', $content);
         $this->insertAfterTrait($content);
+    }
+    public function matchArray(string $name)
+    {
+        return $this->match("/protected \W$name = \[/s");
+    }
+    public function addInArray(string $name, string $content)
+    {
+        return $this->replace("/(protected \W$name = \[)/s", "$1\n$content");
+    }
+    public function setArray(string $name, string $content)
+    {
+        return $this->replace("/([ \r\t]+)(protected \W$name = \[)([^\]]+)?/s", "$1$2\n$content\n$1");
     }
 
     public function save()
