@@ -60,6 +60,11 @@ class ClassModifier
 
     public function append(string $content)
     {
-        return $this->replace('/(\}\s+)$/s', "$content\n$1");
+        return $this->replace('/(\}\s+)$/s', "$content\n\n$1");
+    }
+
+    public function insertAfterTrait(string $content)
+    {
+        return $this->replace('/(\vclass .* use[^\;]+;)/s', "$1\n\n$content");
     }
 }

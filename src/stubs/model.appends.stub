@@ -1,0 +1,8 @@
+    /**
+     * The attributes that should be appends for serialization.
+     *
+     * @var array
+     */
+    protected $appends = [
+        {{ values }}
+    ];

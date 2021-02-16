@@ -145,6 +145,116 @@ class ModelModifier extends ClassModifier
         file_put_contents($file, $content);
     }
 
+    public function aditionalTraits()
+    {
+        if ($this->bool('__build.traits')) {
+            $data = $this->get('__build.traits') ?? [];
+            if (is_array($data)) {
+                foreach ($data as $value) {
+                    if (is_string($value)) {
+                        $this->addTrait($value);
+                    } elseif (is_array($value)) {
+                        foreach ($value as $as => $class) {
+                            $this->addTrait($class, $as);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public function additionalCasts()
+    {
+        if ($this->bool('__build.casts')) {
+            $data = $this->get('__build.casts') ?? [];
+            if (is_array($data)) {
+                $values = [];
+                foreach ($data as $key => $value) {
+                    $file = $this->stubPath('model.array.key.value');
+                    $content = file_get_contents($file);
+                    $value = var_export($value, true);
+                    $content = str_replace('{{ value }}', trim($value), $content);
+                    $values[] = $content;
+                }
+
+                $file = $this->stubPath('model.casts');
+                $content = file_get_contents($file);
+                $content = str_replace('{{ values }}', join("\n", $values), $content);
+                $this->insertAfterTrait($content);
+            }
+        }
+    }
+    public function additionalDates()
+    {
+        if ($this->bool('__build.dates')) {
+            $data = $this->get('__build.dates') ?? [];
+            if (is_array($data)) {
+                $values = [];
+                foreach ($data as $key => $value) {
+                    $file = $this->stubPath('model.array.key.value');
+                    $content = file_get_contents($file);
+                    $value = var_export($value, true);
+                    $content = str_replace('{{ value }}', trim($value), $content);
+                    $values[] = $content;
+                }
+
+                $file = $this->stubPath('model.dates');
+                $content = file_get_contents($file);
+                $content = str_replace('{{ values }}', join("\n", $values), $content);
+                $this->insertAfterTrait($content);
+            }
+        }
+    }
+    public function additionalHidden()
+    {
+        if ($this->bool('__build.hidden')) {
+            $data = $this->get('__build.hidden') ?? '';
+            $data = preg_split('/\W+/', strval($data));
+            if (is_array($data)) {
+                $values = [];
+                foreach ($data as $key => $value) {
+                    $file = $this->stubPath('model.array.value');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ value }}', strval($value), $content);
+                    $values[] = $content;
+                }
+
+                $file = $this->stubPath('model.dates');
+                $content = file_get_contents($file);
+                $content = str_replace('{{ values }}', join("\n", $values), $content);
+                $this->insertAfterTrait($content);
+            }
+        }
+    }
+    public function additionalAppends()
+    {
+        if ($this->bool('__build.appends')) {
+            $data = $this->get('__build.appends') ?? '';
+            $data = preg_split('/\W+/', strval($data));
+            if (is_array($data)) {
+                $values = [];
+                foreach ($data as $key => $value) {
+                    $file = $this->stubPath('model.array.value');
+                    $content = file_get_contents($file);
+                    $content = str_replace('{{ value }}', strval($value), $content);
+                    $values[] = $content;
+                }
+
+                $file = $this->stubPath('model.appends');
+                $content = file_get_contents($file);
+                $content = str_replace('{{ values }}', join("\n", $values), $content);
+                $this->insertAfterTrait($content);
+            }
+        }
+    }
+    public function defineAutoIncrement()
+    {
+        $file = $this->stubPath('model.autoincrement');
+        $content = file_get_contents($file);
+        $value = $this->bool('__model.autoIncrement') ? 'true' : 'false';
+        $content = str_replace('{{ value }}', $value, $content);
+        $this->insertAfterTrait($content);
+    }
+
     public function save()
     {
         if ($this->isAuth()) {
@@ -153,7 +263,12 @@ class ModelModifier extends ClassModifier
         } else if ($this->isPivot()) {
             $this->setExtends('Illuminate\Database\Eloquent\Relations\Pivot');
         }
-
+        $this->additionalHidden();
+        $this->additionalAppends();
+        $this->additionalDates();
+        $this->additionalCasts();
+        $this->defineAutoIncrement();
+        $this->aditionalTraits();
         $this->createObserver();
         $this->createPolicy();
         $this->createTrait();
