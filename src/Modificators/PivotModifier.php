@@ -11,4 +11,14 @@ class PivotModifier extends ModelModifier
         $modifier->set('__model.pivot', true);
         $modifier->save();
     }
+    public $data = [
+        '__model' => [
+            'autoIncrement' => false,
+        ],
+        '__build' => [
+            'observe' => true,
+            'trait' => true,
+        ],
+        'timestamps' => false,
+    ];
 }

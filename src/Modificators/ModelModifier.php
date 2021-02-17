@@ -1,6 +1,8 @@
 <?php
 namespace Byancode\Artifice\Modificators;
 
+use Illuminate\Support\Arr;
+
 class ModelModifier extends ClassModifier
 {
     public static function getPath(string $model)
@@ -23,12 +25,27 @@ class ModelModifier extends ClassModifier
     }
 
     public $name;
-    public $data = [];
+    public $data = [
+        '__model' => [
+            'autoIncrement' => null,
+        ],
+        '__build' => [
+            'observe' => true,
+            'trait' => true,
+        ],
+    ];
+
+    public function setDefaultData(array $data)
+    {
+        $this->data = $data;
+        return $this;
+    }
 
     public function setModel(string $name, array $data)
     {
         $this->name = $name;
-        $this->data = $data;
+        $this->data = array_merge_recursive($this->data, $data);
+        return $this;
     }
 
     public function bool(string $keys)
@@ -50,6 +67,10 @@ class ModelModifier extends ClassModifier
     public function stubPath(string $name)
     {
         return base_path("vendor/byancode/artifice/src/stubs/$name.stub");
+    }
+    public function getStub(string $name)
+    {
+        return file_get_contents($this->stubPath($name));
     }
 
     public function isPivot()
@@ -176,8 +197,7 @@ class ModelModifier extends ClassModifier
             if (is_array($data)) {
                 $values = [];
                 foreach (array_merge($casts, $data) as $key => $value) {
-                    $file = $this->stubPath('model.array.key.value');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.array.key.value');
                     $value = var_export($value, true);
                     $content = str_replace('{{ key }}', $key, $content);
                     $content = str_replace('{{ value }}', trim($value), $content);
@@ -185,8 +205,7 @@ class ModelModifier extends ClassModifier
                 }
 
                 if ($this->matchArray('casts') === false) {
-                    $file = $this->stubPath('model.casts');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.casts');
                     $content = str_replace('{{ values }}', join("\n", $values), $content);
                     $this->insertAfterTrait($content);
                 } else {
@@ -202,8 +221,7 @@ class ModelModifier extends ClassModifier
             if (is_array($data)) {
                 $values = [];
                 foreach ($data as $key => $value) {
-                    $file = $this->stubPath('model.array.key.value');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.array.key.value');
                     $value = var_export($value, true);
                     $content = str_replace('{{ key }}', $key, $content);
                     $content = str_replace('{{ value }}', trim($value), $content);
@@ -212,8 +230,7 @@ class ModelModifier extends ClassModifier
                 }
 
                 if ($this->matchArray('dates') === false) {
-                    $file = $this->stubPath('model.dates');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.dates');
                     $content = str_replace('{{ key }}', $key, $content);
                     $content = str_replace('{{ values }}', join("\n", $values), $content);
                     $this->insertAfterTrait($content);
@@ -229,16 +246,14 @@ class ModelModifier extends ClassModifier
             if (is_array($data)) {
                 $values = [];
                 foreach ($data as $key => $value) {
-                    $file = $this->stubPath('model.array.value');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.array.value');
                     $content = str_replace('{{ value }}', strval($value), $content);
                     $this->addInArray('hidden', $content);
                     $values[] = $content;
                 }
 
                 if ($this->matchArray('hidden') === false) {
-                    $file = $this->stubPath('model.hidden');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.hidden');
                     $content = str_replace('{{ values }}', join("\n", $values), $content);
                     $this->insertAfterTrait($content);
                 }
@@ -253,16 +268,14 @@ class ModelModifier extends ClassModifier
             if (is_array($data)) {
                 $values = [];
                 foreach ($data as $key => $value) {
-                    $file = $this->stubPath('model.array.value');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.array.value');
                     $content = str_replace('{{ value }}', strval($value), $content);
                     $this->addInArray('appends', $content);
                     $values[] = $content;
                 }
 
                 if ($this->matchArray('appends') === false) {
-                    $file = $this->stubPath('model.appends');
-                    $content = file_get_contents($file);
+                    $content = $this->getStub('model.appends');
                     $content = str_replace('{{ values }}', join("\n", $values), $content);
                     $this->insertAfterTrait($content);
                 }
@@ -276,8 +289,7 @@ class ModelModifier extends ClassModifier
         if (is_bool($value) === false) {
             return;
         }
-        $file = $this->stubPath('model.autoincrement');
-        $content = file_get_contents($file);
+        $content = $this->getStub('model.autoincrement');
         $content = str_replace('{{ value }}', $value ? 'true' : 'false', $content);
         $this->insertAfterTrait($content);
     }
@@ -294,6 +306,49 @@ class ModelModifier extends ClassModifier
         return $this->replace("/([ \r\t]+)(protected \W$name = \[)([^\]]+)?/s", "$1$2\n$content\n$1");
     }
 
+    public function migrationIndexes()
+    {
+        if ($this->bool('__model.index')) {
+            $data = $this->get('__model.index') ?? [];
+            if (is_array($data) && Arr::isAssoc($data) === false) {
+                $model = $this->name;
+                $table = strtolower($model);
+                $migration = $this->getStub('migration.class');
+                $values = [];
+                foreach ($data as $index) {
+                    if (is_array($index) && Arr::isAssoc($index)) {
+                        foreach ($index as $type => $values) {
+                            $values = preg_split('/\W+/', strval($values));
+                            $content = $this->getStub('migration.index');
+                            $content = str_replace('{{ type }}', $type, $content);
+                            $content = str_replace('{{ name }}', str_random(10), $content);
+                            $items = [];
+                            foreach ($values as $value) {
+                                $item = $this->getStub('migration.index');
+                                $value = var_export($value, true);
+                                $item = str_replace('{{ type }}', $value, $item);
+                                $items[] = $item;
+                            }
+                            $content = str_replace('{{ values }}', join("\n", $items), $content);
+                            $values[] = $content;
+                        }
+                    }
+                }
+                $migration = str_replace('{{ model }}', $model, $migration);
+                $migration = str_replace('{{ table }}', $table, $migration);
+                $migration = str_replace('{{ content }}', join("\n", $values), $migration);
+
+                $filename = date('Y_m_d_u') . "_index_{$table}_table.php";
+                $path = base_path('database/migrations');
+
+                !is_dir($path) && mkdir($path, 0777, true);
+                $file = base_path("database/migrations/$filename");
+
+                file_put_contents($file, $migration);
+            }
+        }
+    }
+
     public function save()
     {
         if ($this->isAuth()) {
@@ -302,6 +357,7 @@ class ModelModifier extends ClassModifier
         } else if ($this->isPivot()) {
             $this->setExtends('Illuminate\Database\Eloquent\Relations\Pivot');
         }
+        $this->migrationIndexes();
         $this->additionalHidden();
         $this->additionalAppends();
         $this->additionalDates();

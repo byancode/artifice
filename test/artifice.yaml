@@ -13,7 +13,7 @@ models:
     __class:
       extend: User
       traits:
-        - NameSpace\Other\ClassTrait
+        - App\Traits\ClassTrait
     __model:
       autoIncrement: false
       appends: code, test
