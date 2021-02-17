@@ -2,6 +2,7 @@
 namespace Byancode\Artifice\Modificators;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class ModelModifier extends ClassModifier
 {
@@ -308,25 +309,24 @@ class ModelModifier extends ClassModifier
 
     public function migrationIndexes()
     {
-        if ($this->bool('__model.index')) {
-            $data = $this->get('__model.index') ?? [];
+        if ($this->bool('__index')) {
+            $data = $this->get('__index') ?? [];
             if (is_array($data) && Arr::isAssoc($data) === false) {
-                $model = $this->name;
+                $model = Str::plural($this->name, 2);
                 $table = strtolower($model);
                 $migration = $this->getStub('migration.class');
                 $values = [];
                 foreach ($data as $index) {
                     if (is_array($index) && Arr::isAssoc($index)) {
                         foreach ($index as $type => $values) {
-                            $values = preg_split('/\W+/', strval($values));
+                            $attrs = preg_split('/\W+/', strval($values));
                             $content = $this->getStub('migration.index');
                             $content = str_replace('{{ type }}', $type, $content);
-                            $content = str_replace('{{ name }}', str_random(10), $content);
+                            $content = str_replace('{{ name }}', Str::random(10), $content);
                             $items = [];
-                            foreach ($values as $value) {
-                                $item = $this->getStub('migration.index');
-                                $value = var_export($value, true);
-                                $item = str_replace('{{ type }}', $value, $item);
+                            foreach ($attrs as $value) {
+                                $item = $this->getStub('migration.array.value');
+                                $item = str_replace('{{ value }}', $value, $item);
                                 $items[] = $item;
                             }
                             $content = str_replace('{{ values }}', join("\n", $items), $content);
@@ -338,7 +338,7 @@ class ModelModifier extends ClassModifier
                 $migration = str_replace('{{ table }}', $table, $migration);
                 $migration = str_replace('{{ content }}', join("\n", $values), $migration);
 
-                $filename = date('Y_m_d_u') . "_index_{$table}_table.php";
+                $filename = date('Y_m_d_u') . "_create_{$table}_indexes.php";
                 $path = base_path('database/migrations');
 
                 !is_dir($path) && mkdir($path, 0777, true);

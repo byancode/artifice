@@ -163,6 +163,7 @@ class BuildCommand extends Command
                 base_path("database/factories/{$name}Factory.php"),
             ],
             glob(base_path("database/migrations/*_create_{$plural}_table.php")),
+            glob(base_path("database/migrations/*_create_{$plural}_indexes.php")),
             glob(base_path("database/migrations/*_create_{$singular}_*_table.php")),
             glob(base_path("database/migrations/*_create_*_{$singular}_table.php")),
             glob(base_path("database/migrations/*_create_*_{$singular}able_table.php")),
