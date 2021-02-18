@@ -332,7 +332,7 @@ class BuildCommand extends Command
     }
     public function generateController(string $method, string $controller, string $function)
     {
-        $file = app_path("Http/Controllers/$controller");
+        $file = app_path("Http/Controllers/$controller.php");
 
         if (file_exists($file)) {
             $content = file_get_contents($file);
@@ -344,7 +344,7 @@ class BuildCommand extends Command
         $functionName = ucfirst($function);
 
         $requestName = preg_replace('/Controller$/s', "Request$functionName", $controller);
-        $requestFile = app_path("Http/Requests/$requestName");
+        $requestFile = app_path("Http/Requests/$requestName.php");
         $requestClass = "App\\Requests\\$requestName";
 
         if (preg_match("/public function $function\(/s", $content) !== 1) {
@@ -357,10 +357,13 @@ class BuildCommand extends Command
             ][$method]);
             $stub = str_replace('{{ name }}', $function, $stub);
             $stub = str_replace('{{ request }}', $requestName, $stub);
-            $content = preg_replace('/\}(?:\s+)?$/s', "\n$stub\n}", $content);
             $content = preg_replace("/\vuse $requestClass;(?:[ \r]+)?/s", '', $content, 1);
             $content = preg_replace('/(\vuse )/s', "$1$requestClass;$1", $content, 1);
-            file_put_contents($requestFile, $stub);
+            $content = preg_replace('/\}(?:\s+)?$/s', "\n$stub\n}", $content);
+
+            $requestContent = $this->getStub('request.class');
+            $stub = str_replace('{{ name }}', $requestName, $requestContent);
+            file_put_contents($requestFile, $requestContent);
         }
         file_put_contents($file, $content);
     }
