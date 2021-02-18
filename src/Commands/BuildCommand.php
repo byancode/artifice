@@ -153,7 +153,7 @@ class BuildCommand extends Command
                 app_path("Traits/{$name}Trait.php"),
                 app_path("Observers/{$name}Observer.php"),
             ],
-            glob(base_path("database/migrations/*_create_{$table}_table.php")),
+            glob(app_path("database/migrations/*_create_{$table}_table.php")),
         );
     }
     public function getPathModel(string $name)
@@ -163,12 +163,15 @@ class BuildCommand extends Command
     }
     public function getModificableModelFiles(string $name)
     {
-        return [
-            app_path("Traits/{$name}Trait.php"),
-            app_path("Http/Controllers/{$name}Controller.php"),
-            app_path("Observers/{$name}Observer.php"),
-            app_path("Policies/{$name}Policy.php"),
-        ];
+        return array_merge(
+            [
+                app_path("Traits/{$name}Trait.php"),
+                app_path("Http/Controllers/{$name}Controller.php"),
+                app_path("Observers/{$name}Observer.php"),
+                app_path("Policies/{$name}Policy.php"),
+            ],
+            glob(app_path("Http/Requests/{$name}Request*.php")),
+        );
     }
     public function getModelFiles(string $name)
     {
