@@ -12,6 +12,7 @@ use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
 {
+    public $uses = [];
     public $data = [];
     public $blueprint;
     /**
@@ -56,6 +57,7 @@ class BuildCommand extends Command
         $this->defaultServiceProvider();
         $this->generateDraft();
         $this->generatePivots();
+        $this->generateRoutes();
         $this->generatePolicies();
         $this->createCompileFile();
     }
@@ -241,6 +243,104 @@ class BuildCommand extends Command
             }
             ModelModifier::create($model, $value);
         }
+    }
+
+    public function generateRoutes()
+    {
+        $pattern = '/#start::artificie.*#end::artifice|#::artificie/s';
+        $allRoutes = $this->data['routes'] ?? [];
+        foreach ($allRoutes as $channel => $routes) {
+            $content = $this->createRoutes($routes);
+            $file = base_path("routes/$channel.php");
+            $text = $this->routeUses() . "\n\n$content";
+            $content = file_get_contents($file);
+            $content = preg_replace($pattern, $text, $content);
+            file_put_contents($file, $content);
+        }
+    }
+    public function routeUses()
+    {
+        return join("\n", array_unique($this->uses));
+    }
+
+    public function createRoutes(array $routes, int $tab = 0)
+    {
+        $groups = [];
+        foreach ($routes as $key => $value) {
+            if (preg_match('/^\//', $key) && preg_match('/ \+ /', $key)) {
+                [$prefix, $middleware] = preg_split('/\s+\+\s+/', $key);
+            } elseif (preg_match('/^\+/', $key)) {
+                $middleware = $key;
+            } elseif (preg_match('/^\//', $key)) {
+                $prefix = $key;
+            } else {
+                continue;
+            }
+            $group = $this->getStub('routes.group');
+            $attrs = compact('prefix', 'middleware');
+            $contents = [];
+            foreach ($attrs as $key => $value) {
+                $content = $this->getStub('routes.array.key.value');
+                $content = str_replace('{{ key }}', $key, $content);
+                $content = str_replace('{{ value }}', $value, $content);
+                $contents[] = $content;
+            }
+            $content = join("\n", $contents);
+            $content = $this->addTabs($content, $tab + 1);
+            $group = str_replace('{{ attrs }}', $content, $group);
+
+            $contents = [];
+            $methods = Arr::only($value, ['get', 'post', 'put', 'patch', 'delete']);
+            foreach ($methods as $method => $controllerAndFunction) {
+                [$controller, $function] = split('@', $controllerAndFunction);
+                $this->uses[] = "use App\\Http\\Controllers\\$controller";
+                $this->generateController($controller, $function);
+                if (isset($value['where'])) {
+                    $content = $this->getStub('routes.method.where');
+                    $content = str_replace('{{ method }}', $method, $content);
+                    $content = str_replace('{{ controller }}', $controllerAndFunction, $content);
+                    $wheres = [];
+                    foreach ($value['where'] as $key => $regexp) {
+                        $where = $this->getStub('routes.array.key.value');
+                        $where = str_replace('{{ key }}', $key, $where);
+                        $where = str_replace('{{ value }}', $regexp, $where);
+                        $wheres[] = $content;
+                    }
+                    $where = join("\n", $wheres);
+                    $where = $this->addTabs($where, $tab + 2);
+                    $content = str_replace('{{ attrs }}', $where, $content);
+                } else {
+                    $content = $this->getStub('routes.method');
+                    $content = str_replace('{{ method }}', $method, $content);
+                    $content = str_replace('{{ controller }}', $controllerAndFunction, $content);
+                }
+                $contents[] = $content;
+            }
+            $content = join("\n", $contents);
+            $content = $this->addTabs($content, $tab + 1);
+            $content += "\n" . $this->createRoutes($value, $tab + 1);
+            $group = str_replace('{{ content }}', $content, $group);
+            $groups[] = $group;
+        }
+        $content = join("\n", $groups);
+        $content = $this->addTabs($content, $tab);
+        return $content;
+    }
+    public function addTabs(string $content, int $tab = 0)
+    {
+        $tabs = str_repeat(' ', $tab * 4);
+        return preg_replace('/^/m', $tabs, $content);
+    }
+    public function generateController(string $controller, string $function)
+    {
+        $file = app_path("Http/Controllers/$controller");
+
+        if (file_exists($file)) {
+            $content = file_get_contents($file);
+        } else {
+            $content = $this->getStub('controller.class');
+        }
+
     }
 
     public function generate(array $data)

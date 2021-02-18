@@ -27,5 +27,5 @@ php artisan vendor:publish --provider="Byancode\Artifice\Provider\Service" --tag
 ## Usage
 
 ``` bash 
-php artisan artifice:build --force="observe, trait"
+php artisan artifice:build
 ```

@@ -158,9 +158,12 @@ class ModelModifier extends ClassModifier
 
         !is_dir($path) && mkdir($path, 0777);
 
+        $name = strtolower($this->name);
+        $name = $name === 'user' ? 'userModel' : $name;
+
         $content = file_get_contents($this->stubPath('policy.class'));
-        $content = str_replace('{{ name }}', strtolower($this->name), $content);
         $content = str_replace('{{ model }}', $this->name, $content);
+        $content = str_replace('{{ name }}', $name, $content);
 
         file_put_contents($file, $content);
     }
