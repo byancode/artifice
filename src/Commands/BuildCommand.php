@@ -12,7 +12,6 @@ use Symfony\Component\Yaml\Yaml;
 
 class BuildCommand extends Command
 {
-    public $uses = [];
     public $data = [];
     public $blueprint;
     /**
@@ -247,67 +246,67 @@ class BuildCommand extends Command
 
     public function generateRoutes()
     {
-        $pattern = '/#start::artificie.*#end::artifice|#::artificie/s';
+        $pattern = '/#start::artifice.*#end::artifice|#::artifice/s';
         $allRoutes = $this->data['routes'] ?? [];
         foreach ($allRoutes as $channel => $routes) {
-            $content = $this->createRoutes($routes);
+            $text = $this->createRoutes($routes);
             $file = base_path("routes/$channel.php");
-            $text = $this->routeUses() . "\n\n$content";
             $content = file_get_contents($file);
+            $text = "#start::artifice\n$text\n#end::artifice";
             $content = preg_replace($pattern, $text, $content);
             file_put_contents($file, $content);
         }
-    }
-    public function routeUses()
-    {
-        return join("\n", array_unique($this->uses));
     }
 
     public function createRoutes(array $routes, int $tab = 0)
     {
         $groups = [];
-        foreach ($routes as $key => $value) {
+        foreach ($routes as $key => $array) {
+            if (is_array($array) === false || Arr::isAssoc($array) === false) {
+                continue;
+            }
+            $attrs = [];
             if (preg_match('/^\//', $key) && preg_match('/ \+ /', $key)) {
-                [$prefix, $middleware] = preg_split('/\s+\+\s+/', $key);
+                [$attrs['prefix'], $attrs['middleware']] = preg_split('/\s+\+\s+/s', $key);
             } elseif (preg_match('/^\+/', $key)) {
-                $middleware = $key;
+                $attrs['middleware'] = preg_replace('/^[\+\s]+/', '', $key);
             } elseif (preg_match('/^\//', $key)) {
-                $prefix = $key;
+                $attrs['prefix'] = $key;
             } else {
                 continue;
             }
             $group = $this->getStub('routes.group');
-            $attrs = compact('prefix', 'middleware');
             $contents = [];
             foreach ($attrs as $key => $value) {
                 $content = $this->getStub('routes.array.key.value');
                 $content = str_replace('{{ key }}', $key, $content);
+                $value = var_export($value, true);
                 $content = str_replace('{{ value }}', $value, $content);
-                $contents[] = $content;
+                $contents[] = trim($content);
             }
             $content = join("\n", $contents);
-            $content = $this->addTabs($content, $tab + 1);
+            $content = $this->addTabs($content, 1);
             $group = str_replace('{{ attrs }}', $content, $group);
 
             $contents = [];
-            $methods = Arr::only($value, ['get', 'post', 'put', 'patch', 'delete']);
+            $methods = Arr::only($array, ['get', 'post', 'put', 'patch', 'delete']);
             foreach ($methods as $method => $controllerAndFunction) {
-                [$controller, $function] = split('@', $controllerAndFunction);
-                $this->uses[] = "use App\\Http\\Controllers\\$controller";
-                $this->generateController($controller, $function);
-                if (isset($value['where'])) {
+                [$controller, $function] = explode('@', $controllerAndFunction);
+                $this->generateController($method, $controller, $function);
+                if (isset($array['where'])) {
                     $content = $this->getStub('routes.method.where');
                     $content = str_replace('{{ method }}', $method, $content);
                     $content = str_replace('{{ controller }}', $controllerAndFunction, $content);
                     $wheres = [];
-                    foreach ($value['where'] as $key => $regexp) {
+                    foreach ($array['where'] as $key => $regexp) {
                         $where = $this->getStub('routes.array.key.value');
                         $where = str_replace('{{ key }}', $key, $where);
+                        $regexp = var_export($regexp, true);
                         $where = str_replace('{{ value }}', $regexp, $where);
-                        $wheres[] = $content;
+                        $wheres[] = trim($where);
                     }
                     $where = join("\n", $wheres);
-                    $where = $this->addTabs($where, $tab + 2);
+                    $where = $this->addTabs($where, 1);
                     $content = str_replace('{{ attrs }}', $where, $content);
                 } else {
                     $content = $this->getStub('routes.method');
@@ -317,8 +316,8 @@ class BuildCommand extends Command
                 $contents[] = $content;
             }
             $content = join("\n", $contents);
-            $content = $this->addTabs($content, $tab + 1);
-            $content += "\n" . $this->createRoutes($value, $tab + 1);
+            $content = $this->addTabs($content, 1);
+            $content .= "\n" . $this->createRoutes($array, 1);
             $group = str_replace('{{ content }}', $content, $group);
             $groups[] = $group;
         }
@@ -331,7 +330,7 @@ class BuildCommand extends Command
         $tabs = str_repeat(' ', $tab * 4);
         return preg_replace('/^/m', $tabs, $content);
     }
-    public function generateController(string $controller, string $function)
+    public function generateController(string $method, string $controller, string $function)
     {
         $file = app_path("Http/Controllers/$controller");
 
@@ -341,6 +340,29 @@ class BuildCommand extends Command
             $content = $this->getStub('controller.class');
         }
 
+        $content = str_replace('{{ name }}', $controller, $content);
+        $functionName = ucfirst($function);
+
+        $requestName = preg_replace('/Controller$/s', "Request$functionName", $controller);
+        $requestFile = app_path("Http/Requests/$requestName");
+        $requestClass = "App\\Requests\\$requestName";
+
+        if (preg_match("/public function $function\(/s", $content) !== 1) {
+            $stub = $this->getStub([
+                'get' => 'controller.none',
+                'put' => 'controller.validate',
+                'post' => 'controller.validate',
+                'patch' => 'controller.by.id',
+                'delete' => 'controller.by.id',
+            ][$method]);
+            $stub = str_replace('{{ name }}', $function, $stub);
+            $stub = str_replace('{{ request }}', $requestName, $stub);
+            $content = preg_replace('/\}(?:\s+)?$/s', "\n$stub\n}", $content);
+            $content = preg_replace("/\vuse $requestClass;(?:[ \r]+)?/s", '', $content, 1);
+            $content = preg_replace('/(\vuse )/s', "$1$requestClass;$1", $content, 1);
+            file_put_contents($requestFile, $stub);
+        }
+        file_put_contents($file, $content);
     }
 
     public function generate(array $data)
