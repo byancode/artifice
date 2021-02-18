@@ -17,6 +17,7 @@ class PivotModifier extends ModelModifier
         ],
         '__build' => [
             'observe' => true,
+            'policy' => false,
             'trait' => true,
         ],
         'timestamps' => false,

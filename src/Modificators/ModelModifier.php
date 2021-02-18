@@ -32,6 +32,7 @@ class ModelModifier extends ClassModifier
         ],
         '__build' => [
             'observe' => true,
+            'policy' => true,
             'trait' => true,
         ],
     ];
@@ -145,10 +146,6 @@ class ModelModifier extends ClassModifier
 
     public function createPolicy()
     {
-        if ($this->bool('__model.auth') === false) {
-            return;
-        }
-
         $path = app_path('Policies');
         $file = app_path("Policies/{$this->name}Policy.php");
 
@@ -161,7 +158,8 @@ class ModelModifier extends ClassModifier
 
         !is_dir($path) && mkdir($path, 0777);
 
-        $content = file_get_contents($this->stubPath('policy'));
+        $content = file_get_contents($this->stubPath('policy.class'));
+        $content = str_replace('{{ name }}', strtolower($this->name), $content);
         $content = str_replace('{{ model }}', $this->name, $content);
 
         file_put_contents($file, $content);
@@ -318,8 +316,8 @@ class ModelModifier extends ClassModifier
                 $values = [];
                 foreach ($data as $index) {
                     if (is_array($index) && Arr::isAssoc($index)) {
-                        foreach ($index as $type => $values) {
-                            $attrs = preg_split('/\W+/', strval($values));
+                        foreach ($index as $type => $attrs) {
+                            $attrs = preg_split('/\W+/', strval($attrs));
                             $content = $this->getStub('migration.index');
                             $content = str_replace('{{ type }}', $type, $content);
                             $content = str_replace('{{ name }}', Str::random(10), $content);

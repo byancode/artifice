@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\{{ model }};
+use Illuminate\Foundation\Auth\User as Authenticable;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class {{ model }}Policy
+{
+    use HandlesAuthorization;
+
+    /**
+     * Determine whether the user can view any models.
+     *
+     * @param  Authenticable  $user
+     * @return mixed
+     */
+    public function viewAny(Authenticable $user)
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     *
+     * @param  Authenticable  $user
+     * @param  \App\Models\{{ model }}  ${{ name }}
+     * @return mixed
+     */
+    public function view(Authenticable $user, {{ model }} ${{ name }})
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can create models.
+     *
+     * @param  Authenticable  $user
+     * @return mixed
+     */
+    public function create(Authenticable $user)
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     *
+     * @param  Authenticable  $user
+     * @param  \App\Models\{{ model }}  ${{ name }}
+     * @return mixed
+     */
+    public function update(Authenticable $user, {{ model }} ${{ name }})
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     *
+     * @param  Authenticable  $user
+     * @param  \App\Models\{{ model }}  ${{ name }}
+     * @return mixed
+     */
+    public function delete(Authenticable $user, {{ model }} ${{ name }})
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     *
+     * @param  Authenticable  $user
+     * @param  \App\Models\{{ model }}  ${{ name }}
+     * @return mixed
+     */
+    public function restore(Authenticable $user, {{ model }} ${{ name }})
+    {
+        //
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @param  Authenticable  $user
+     * @param  \App\Models\{{ model }}  ${{ name }}
+     * @return mixed
+     */
+    public function forceDelete(Authenticable $user, {{ model }} ${{ name }})
+    {
+        //
+    }
+}

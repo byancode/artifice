@@ -22,11 +22,7 @@ class BuildCommand extends Command
     protected $signature = 'artifice:build
     {--name=artifice : Artifice yaml file }
     {--draft=draft : The path to the draft file }
-    {--only= : Comma separated list of file classes to generate, skipping the rest }
-    {--skip= : Comma separated list of file classes to skip, generating the rest }
-    {--force= : Comma separated list of file classes to override}
-    {--default-route=api : routers available: api, web}
-    {--no-traits}';
+    {--default-route=api : routers available: api, web}';
     /**
      * The console command description.
      *
@@ -39,10 +35,16 @@ class BuildCommand extends Command
      *
      * @return void
      */
+    public $authServicePoviderName;
+    public $authServicePoviderFile;
+    public $authServicePoviderContent;
     public function __construct()
     {
         parent::__construct();
         $this->blueprint = app(Blueprint::class);
+        $this->authServicePoviderName = "ArtificeAuthServiceProvider";
+        $this->authServicePoviderFile = app_path("Providers/{$this->authServicePoviderName}.php");
+        $this->authServicePoviderContent = file_get_contents($this->authServicePoviderFile);
     }
 
     /**
@@ -56,6 +58,7 @@ class BuildCommand extends Command
         $this->cleanerFiles();
         $this->generateDraft();
         $this->generatePivots();
+        $this->generatePolicies();
         $this->createCompileFile();
     }
     public function cleanerFiles()
@@ -217,7 +220,13 @@ class BuildCommand extends Command
     public function generateDraft()
     {
         $this->generate($this->draftArray());
-        ModelModifier::createMany($this->data['models'] ?? []);
+        $data = $this->data['models'] ?? [];
+        foreach ($data as $model => $value) {
+            if (data_get($value, '__build.policy') === true) {
+                $this->addPolicy($model);
+            }
+            ModelModifier::create($key, $value);
+        }
     }
 
     public function generate(array $data)
@@ -225,10 +234,7 @@ class BuildCommand extends Command
         $data['cache'] = [];
         $registry = $this->blueprint->analyze($data);
 
-        $only = array_filter(explode(',', $this->option('only')));
-        $skip = array_filter(explode(',', $this->option('skip')));
-
-        $this->blueprint->generate($registry, $only, $skip, true);
+        $this->blueprint->generate($registry, [], [], true);
     }
     public function getPivotRaw(string $model, string $relation)
     {
@@ -247,6 +253,21 @@ class BuildCommand extends Command
         $name = [$model, $relation];
         sort($name);
         return strtolower(join('_', $name));
+    }
+    public function addPolicy(string $name)
+    {
+        $content = $this->getStub('service.array.key.value');
+        $model = "App\\Models\\{$name}";
+        $class = "App\\Policies\\{$name}Policy";
+        $content = str_replace('{{ key }}', $model, $content);
+        $content = str_replace('{{ value }}', $class, $content);
+        $this->authServicePoviderContent = preg_replace(
+            '/(protected \$policies = \[)/s', "$1\n$content", $this->authServicePoviderContent
+        );
+    }
+    public function generatePolicies()
+    {
+        file_put_contents($this->authServicePoviderFile, $this->authServicePoviderContent);
     }
     public function generatePivots()
     {
@@ -281,6 +302,9 @@ class BuildCommand extends Command
             $files = glob(base_path("database/migrations/*_create_{$new_table}_table.php"));
             foreach ($files as $file) {
                 unlink($file);
+            }
+            if (data_get($data, '__build.policy') === true) {
+                $this->addPolicy($new_model);
             }
             $old_table = Str::plural($new_table, 2);
             $old_model = Str::plural($new_model, 2);
