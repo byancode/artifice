@@ -44,7 +44,15 @@ class BuildCommand extends Command
         $this->blueprint = app(Blueprint::class);
         $this->authServicePoviderName = "ArtificeAuthServiceProvider";
         $this->authServicePoviderFile = app_path("Providers/{$this->authServicePoviderName}.php");
-        $this->authServicePoviderContent = file_get_contents($this->authServicePoviderFile);
+        $this->authServicePoviderContent = $this->getStub('service.auth.class');
+    }
+    public function stubPath(string $name)
+    {
+        return base_path("vendor/byancode/artifice/src/stubs/$name.stub");
+    }
+    public function getStub(string $name)
+    {
+        return file_get_contents($this->stubPath($name));
     }
 
     /**
