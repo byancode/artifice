@@ -42,17 +42,6 @@ class BuildCommand extends Command
     {
         parent::__construct();
         $this->blueprint = app(Blueprint::class);
-        $this->authServicePoviderName = "ArtificeAuthServiceProvider";
-        $this->authServicePoviderFile = app_path("Providers/{$this->authServicePoviderName}.php");
-        $this->authServicePoviderContent = $this->getStub('service.auth.class');
-    }
-    public function stubPath(string $name)
-    {
-        return base_path("vendor/byancode/artifice/src/stubs/$name.stub");
-    }
-    public function getStub(string $name)
-    {
-        return file_get_contents($this->stubPath($name));
     }
 
     /**
@@ -64,10 +53,19 @@ class BuildCommand extends Command
     {
         $this->yamlFiles();
         $this->cleanerFiles();
+        $this->defaultServiceProvider();
         $this->generateDraft();
         $this->generatePivots();
         $this->generatePolicies();
         $this->createCompileFile();
+    }
+    public function stubPath(string $name)
+    {
+        return base_path("vendor/byancode/artifice/src/stubs/$name.stub");
+    }
+    public function getStub(string $name)
+    {
+        return file_get_contents($this->stubPath($name));
     }
     public function cleanerFiles()
     {
@@ -137,6 +135,13 @@ class BuildCommand extends Command
         }
         return call_user_func_array('array_merge', $items);
     }
+    public function defaultServiceProvider()
+    {
+
+        $this->authServicePoviderName = "ArtificeAuthServiceProvider";
+        $this->authServicePoviderFile = app_path("Providers/{$this->authServicePoviderName}.php");
+        $this->authServicePoviderContent = $this->getStub('service.auth.class');
+    }
     public function getPivotFiles(string $name)
     {
         $table = Str::kebab($name);
@@ -192,7 +197,8 @@ class BuildCommand extends Command
     }
     public function getCompileFile()
     {
-        return base_path('.artifice');
+        $artifice = $this->option('name');
+        return base_path("$artifice.lock");
     }
     public function compiledArray()
     {
@@ -230,10 +236,10 @@ class BuildCommand extends Command
         $this->generate($this->draftArray());
         $data = $this->data['models'] ?? [];
         foreach ($data as $model => $value) {
-            if (data_get($value, '__build.policy') === true) {
+            if (data_get($value, '__build.policy', true) === true) {
                 $this->addPolicy($model);
             }
-            ModelModifier::create($key, $value);
+            ModelModifier::create($model, $value);
         }
     }
 
@@ -265,10 +271,8 @@ class BuildCommand extends Command
     public function addPolicy(string $name)
     {
         $content = $this->getStub('service.array.key.value');
-        $model = "App\\Models\\{$name}";
-        $class = "App\\Policies\\{$name}Policy";
-        $content = str_replace('{{ key }}', $model, $content);
-        $content = str_replace('{{ value }}', $class, $content);
+        $content = str_replace('{{ key }}', "App\\Models\\{$name}", $content);
+        $content = str_replace('{{ value }}', "App\\Policies\\{$name}Policy", $content);
         $this->authServicePoviderContent = preg_replace(
             '/(protected \$policies = \[)/s', "$1\n$content", $this->authServicePoviderContent
         );
@@ -311,7 +315,7 @@ class BuildCommand extends Command
             foreach ($files as $file) {
                 unlink($file);
             }
-            if (data_get($data, '__build.policy') === true) {
+            if (data_get($data, '__build.policy', false) === true) {
                 $this->addPolicy($new_model);
             }
             $old_table = Str::plural($new_table, 2);
@@ -350,7 +354,7 @@ class BuildCommand extends Command
     {
         $artifice = $this->option('name');
         $this->yamlSearch($artifice);
-        $this->yamlSearch("$artifice/*");
+        $this->yamlSearch(".$artifice/*");
     }
     public function yamlSearch(string $path)
     {
