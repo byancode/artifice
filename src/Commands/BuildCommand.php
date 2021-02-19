@@ -360,14 +360,16 @@ class BuildCommand extends Command
             ][$method]);
             $stub = str_replace('{{ name }}', $function, $stub);
             $stub = str_replace('{{ request }}', $requestName, $stub);
-            $content = preg_replace("/\vuse $requestClass;(?:[ \r]+)?/s", '', $content, 1);
-            $content = preg_replace('/(\vuse )/s', "$1$requestClass;$1", $content, 1);
             $content = preg_replace('/\}(?:\s+)?$/s', "\n$stub\n}", $content);
         }
         if (file_exists($requestFile) === false && in_array($method, ['put', 'post'])) {
             $requestContent = $this->getStub('request.class');
             $requestContent = str_replace('{{ name }}', $requestName, $requestContent);
             file_put_contents($requestFile, $requestContent);
+        }
+        if (in_array($method, ['put', 'post'])) {
+            $content = str_replace("\nuse $requestClass;", '', $content);
+            $content = preg_replace('/(\vnamespace \S+;)\s+\v/s', "$1\n\nuse $requestClass;\n", $content, 1);
         }
         file_put_contents($file, $content);
     }
