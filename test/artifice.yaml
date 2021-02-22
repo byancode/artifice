@@ -1,39 +1,60 @@
 models:
+  User:
+    name: string
+    email: unique string
+    password: string
+    remember_token: nullable string:100
+    email_verified_at: nullable timestamp
   Entry:
     name: string
     description: string
     active: boolean default:0
     relationships:
-      belongsTo: User
-      morphToMany: Activity, User
+      morphMany: Activity
       hasMany: Portion
-    __build:
-      observe: false
-      trait: false
     __class:
       extend: User
       traits:
         - App\Traits\ClassTrait
     __model:
-      autoIncrement: false
       appends: code, test
-      hidden: password, test
       casts:
         code: string
         test: float
       dates:
         created_at: datetime:Y-m-d
     __index:
-      - unique: uuid, id
+      - unique: id, uuid
       - unique: typeable_id, typeable_type
+  Merchant:
+    name: string
+    password: string
+    remember_token: string
+    __model:
+      auth: true
+  Comment:
+    body: string
+    relationships:
+      belongsToMany: User, Entry, Meta
+  File:
+    type: string
+    size: bigInteger
+    name: string
+    info: json default:{}
+    description: nullable text
+    __model:
+      casts:
+        info: object
 
 pivots:
-  Entry,User:
+  Entry,File:
     price: nullable decimal:10,2
+    comment: nullable string
 
 routes.api:
   /user/{user}:
     get: UserController@index
+    post: UserController@store
 
     where:
       user: ^[0-9]+$
@@ -50,4 +71,4 @@ routes.api:
         post: ^[0-9]+$
 
   /owner + auth:owner:
-    get: UserController@create
+    post: OwnerController@create

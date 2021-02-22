@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Http\Controllers;
+
+class {{ controller }} extends Controller
+{
+    public function create()
+    {
+        //
+    }
+    public function search()
+    {
+        //
+    }
+    public function index()
+    {
+        //
+    }
+    public function show()
+    {
+        //
+    }
+    public function update()
+    {
+        //
+    }
+    public function delete()
+    {
+        //
+    }
+    public function createMany()
+    {
+        //
+    }
+    public function createOneFake()
+    {
+        //
+    }
+    public function createFakes()
+    {
+        //
+    }
+    public function pivotSyncWithoutDetaching()
+    {
+        //
+    }
+    public function pivotAttach()
+    {
+        //
+    }
+    public function pivotDetach()
+    {
+        //
+    }
+    public function pivotToggle()
+    {
+        //
+    }
+    public function pivotSync()
+    {
+        //
+    }
+    public function pivotUpdate()
+    {
+        //
+    }
+}

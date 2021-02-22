@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Http\Controllers;
+
+{{ uses }}
+use App\Http\Requests\{{ model }}ApiRequestLogin;
+use App\Http\Requests\{{ model }}ApiRequestRegister;
+use App\Http\Requests\{{ model }}ApiRequestCreate;
+use App\Http\Requests\{{ model }}ApiRequestSearch;
+use App\Http\Requests\{{ model }}ApiRequestUpdate;
+use App\Http\Requests\{{ model }}ApiRequestCreateMany;
+use App\Http\Requests\{{ model }}ApiRequestFake;
+use App\Http\Requests\{{ model }}ApiRequestFakeMany;
+use App\Models\{{ model }};
+
+class {{ controller }} extends Controller
+{
+    public function login({{ model }}ApiRequestLogin $request)
+    {
+        return response([]);
+    }
+    public function register({{ model }}ApiRequestRegister $request)
+    {
+        ${{ name }} = {{ model }}::create($request->validated());
+        return response([
+            'data' => ${{ name }},
+        ]);
+    }
+    public function create({{ model }}ApiRequestCreate $request)
+    {
+        ${{ name }} = {{ model }}::create($request->validated());
+        return response([
+            'data' => ${{ name }},
+        ]);
+    }
+    public function search({{ model }}ApiRequestSearch $request)
+    {
+        return response({{ model }}::paginate(20));
+    }
+    public function index()
+    {
+        return response({{ model }}::paginate(20));
+    }
+    public function show({{ attrs }})
+    {
+        return response([
+            'data' => ${{ name }},
+        ]);
+    }
+    public function update({{ model }}ApiRequestUpdate $request)
+    {
+        ${{ name }}->update($request->validated());
+        return response([
+            'data' => ${{ name }},
+        ]);
+    }
+    public function delete({{ attrs }})
+    {
+        ${{ name }}->delete();
+        return response([]);
+    }
+    public function createMany({{ model }}ApiRequestCreateMany $request)
+    {
+        $list = {{ model }}::createMany($request->validated());
+        return response([
+            'data' => $list,
+        ]);
+    }
+    public function createOneFake({{ model }}ApiRequestFake $request)
+    {
+        ${{ name }} = {{ model }}::factory()->create($request->validated());
+        return response([
+            'data' => ${{ name }},
+        ]);
+    }
+    public function createFakes({{ model }}ApiRequestFakeMany $request, $count)
+    {
+        $list = {{ model }}::factory()->count(intval($count))->create($request->validated());
+        return response([
+            'data' => $list,
+        ]);
+    }
+}

@@ -13,7 +13,7 @@ class PivotModifier extends ModelModifier
     }
     public $data = [
         '__model' => [
-            'autoIncrement' => false,
+            'autoIncrement' => true,
         ],
         '__build' => [
             'observe' => true,

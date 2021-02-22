@@ -13,6 +13,8 @@ use Symfony\Component\Yaml\Yaml;
 class BuildCommand extends Command
 {
     public $data = [];
+    public $apis = [];
+    public $apiFiles = [];
     public $blueprint;
     /**
      * The name and signature of the console command.
@@ -58,6 +60,8 @@ class BuildCommand extends Command
         $this->generatePivots();
         $this->generateRoutes();
         $this->generatePolicies();
+        $this->generateApiRests();
+        $this->generateApiRoutes();
         $this->createCompileFile();
     }
     public function stubPath(string $name)
@@ -235,6 +239,32 @@ class BuildCommand extends Command
     {
         return array_keys($this->data['controllers'] ?? []);
     }
+    public function getModels()
+    {
+        return $this->data['models'] ?? [];
+    }
+    public function getUserModels()
+    {
+        return array_filter($this->getModels(), function ($data) {
+            return data_get($data, '__model.auth') === true;
+        });
+    }
+    public function getRelationableModels()
+    {
+        return array_filter($this->getModels(), function ($data) {
+            return data_get($data, '__model.auth') !== true && (data_get($data, 'relationships.belongsToMany') !== null ||
+                data_get($data, 'relationships.hasMany') !== null ||
+                data_get($data, 'relationships.hasOne') !== null);
+        });
+    }
+    public function getUnRelationableModels()
+    {
+        return array_filter($this->getModels(), function ($data) {
+            return data_get($data, '__model.auth') !== true && (data_get($data, 'relationships.belongsToMany') === null &&
+                data_get($data, 'relationships.hasMany') === null &&
+                data_get($data, 'relationships.hasOne') === null);
+        });
+    }
     public function generateDraft()
     {
         $this->generate($this->draftArray());
@@ -246,11 +276,245 @@ class BuildCommand extends Command
             ModelModifier::create($model, $value);
         }
     }
+    public function generateApiRests()
+    {
+        $models = $this->getUserModels();
+        $relationables = $this->getRelationableModels();
+        $unrelationables = $this->getUnRelationableModels();
+        if (count($models) > 0) {
+            foreach ($models as $model => $attrs) {
+                $base = '/' . Str::kebab($model);
+                $this->generateApiRest($base, $model, 'auth');
+            }
+            foreach ($models as $model => $attrs) {
+                $base = '/' . Str::kebab($model);
+                foreach ($unrelationables as $relation => $attrs) {
+                    $this->generateSimpleApiRest($base, $relation);
+                }
+            }
+        } else {
+            foreach ($relationables as $model => $attrs) {
+                $this->generateApiRest('', $model, 'auth');
+            }
+            foreach ($unrelationables as $relation => $attrs) {
+                $this->generateSimpleApiRest('', $relation);
+            }
+        }
+        foreach ($this->apiFiles as $file => $content) {
+            file_put_contents($file, $content);
+        }
+    }
+    public function getModelClass(string $model)
+    {
+        return "App\\Models\\$model";
+    }
+    public function generateSimpleApiRest(string $base, string $model)
+    {
+        $name = lcfirst($model);
 
+        $path = "$base/" . Str::kebab($model);
+
+        $key = $base ? 'dinamic' : 'simple';
+        $controller = "{$model}ApiController";
+        $file = app_path("Http/Controllers/$controller.php");
+        $content = $this->getStub("controller.class.$key");
+
+        $this->apis["$path/create"]['post'] = "$controller@create";
+        $this->apis["$path/search"]['post'] = "$controller@search";
+        $this->apis["$path/list"]['get'] = "$controller@list";
+        $this->apis["$path/{{$name}}"]['get'] = "$controller@show";
+        $this->apis["$path/{{$name}}"]['post'] = "$controller@update";
+        $this->apis["$path/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis["$path/many"]['post'] = "$controller@createMany";
+        $this->apis["$path/fake"]['post'] = "$controller@createOneFake";
+        $this->apis["$path/fake/{count}"]['post'] = "$controller@createFakes";
+
+        $content = str_replace('{{ controller }}', $controller, $content);
+        $content = str_replace('{{ model }}', $model, $content);
+        $content = str_replace('{{ name }}', $name, $content);
+
+        if (array_key_exists($file, $this->apiFiles) === false) {
+            $this->apiFiles[$file] = $content;
+        }
+    }
+    public function generateApiRest(string $base, string $model, string $type, array $history = [])
+    {
+        $name = lcfirst($model);
+        $kebab = '/' . Str::kebab($model);
+
+        $controller = "{$model}ApiController";
+        $file = app_path("Http/Controllers/$controller.php");
+        $content = $this->getStub("controller.class.$type");
+
+        $args = array_slice($history, -1);
+        $parent = lcfirst($args[1] ?? '');
+
+        if (count($args) > 0) {
+            $path = "$base/" . join('/', array_map(function ($model) {
+                $path = Str::kebab($model);
+                $name = lcfirst($model);
+                return "$path/{{$name}}";
+            }, $args));
+        } else {
+            $path = $base;
+        }
+        if ($base !== $kebab) {
+            $path .= $kebab;
+        }
+
+        $this->apis["$path/create"]['post'] = "$controller@create";
+        $this->apis["$path/search"]['post'] = "$controller@search";
+        $this->apis["$path/list"]['get'] = "$controller@list";
+        $this->apis["$path/{{$name}}"]['get'] = "$controller@show";
+        $this->apis["$path/{{$name}}"]['post'] = "$controller@update";
+        $this->apis["$path/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis["$path/many"]['post'] = "$controller@createMany";
+        $this->apis["$path/fake"]['post'] = "$controller@createOneFake";
+        $this->apis["$path/fake/{count}"]['post'] = "$controller@createFakes";
+
+        if ($type === 'auth') {
+            $this->apis["$path/login"]['post'] = "$controller@login";
+            $this->apis["$path/register"]['post'] = "$controller@register";
+        } elseif ($type === 'belongsToMany') {
+            $this->apis["$path/sync"]['post'] = "$controller@pivotSync";
+            $this->apis["$path/attach"]['post'] = "$controller@pivotAttach";
+            $this->apis["$path/detach"]['post'] = "$controller@pivotDetach";
+            $this->apis["$path/toggle"]['post'] = "$controller@pivotToggle";
+            $this->apis["$path/{{$name}}"]['patch'] = "$controller@pivotUpdate";
+            $this->apis["$path/sync-without-detaching"]['post'] = "$controller@pivotSyncWithoutDetaching";
+        }
+
+        if ($base !== $kebab) {
+            $history[] = $model;
+        }
+
+        $attrs = join(", ", array_map(function ($model) {
+            $name = lcfirst($model);
+            return "$model \${$name}";
+        }, $args));
+
+        $uses = join("\n", array_map(function ($model) {
+            return "use {$this->getModelClass($model)};";
+        }, $history));
+
+        $content = str_replace('{{ controller }}', $controller, $content);
+        $content = str_replace('{{ parent }}', $parent, $content);
+        $content = str_replace('{{ model }}', $model, $content);
+        $content = str_replace('{{ attrs }}', $attrs, $content);
+        $content = str_replace('{{ name }}', $name, $content);
+        $content = str_replace('{{ uses }}', $uses, $content);
+
+        if (array_key_exists($file, $this->apiFiles) === false) {
+            $this->apiFiles[$file] = $content;
+        }
+
+        $data = $this->data['models'][$model] ?? [];
+        $belongsToMany = $this->dataToArray($data, 'relationships.belongsToMany');
+        $morphMany = $this->dataToArray($data, 'relationships.morphMany');
+        $morphOne = $this->dataToArray($data, 'relationships.morphOne');
+        $hasMany = $this->dataToArray($data, 'relationships.hasMany');
+        $hasOne = $this->dataToArray($data, 'relationships.hasOne');
+        $relations = array_merge($belongsToMany, $morphMany, $morphOne, $hasMany, $hasOne);
+        $relations = array_filter(array_unique($relations));
+
+        foreach ($relations as $relation) {
+            if (in_array($relation, $belongsToMany)) {
+                $type = 'belongsToMany';
+            } elseif (in_array($relation, $morphMany)) {
+                $type = 'morphMany';
+            } elseif (in_array($relation, $morphOne)) {
+                $type = 'morphOne';
+            } elseif (in_array($relation, $hasMany)) {
+                $type = 'hasMany';
+            } elseif (in_array($relation, $hasOne)) {
+                $type = 'hasOne';
+            }
+            $this->generateApiRest($base, $relation, $type, $history);
+        }
+    }
+
+    public function createApiRoutes()
+    {
+        $groups = [];
+        foreach ($this->apis as $key => $array) {
+            if (is_array($array) === false || Arr::isAssoc($array) === false) {
+                continue;
+            }
+            $attrs = [];
+            if (preg_match('/^\//', $key) && preg_match('/ \+ /', $key)) {
+                [$attrs['prefix'], $attrs['middleware']] = preg_split('/\s+\+\s+/s', $key);
+            } elseif (preg_match('/^\+/', $key)) {
+                $attrs['middleware'] = preg_replace('/^[\+\s]+/', '', $key);
+            } elseif (preg_match('/^\//', $key)) {
+                $attrs['prefix'] = $key;
+            } else {
+                continue;
+            }
+            $group = $this->getStub('routes.group');
+            $contents = [];
+            foreach ($attrs as $key => $value) {
+                $content = $this->getStub('routes.array.key.value');
+                $content = str_replace('{{ key }}', $key, $content);
+                $value = var_export($value, true);
+                $content = str_replace('{{ value }}', $value, $content);
+                $contents[] = trim($content);
+            }
+            $content = join("\n", $contents);
+            $content = $this->addTabs($content, 1);
+            $group = str_replace('{{ attrs }}', $content, $group);
+
+            $contents = [];
+            $methods = Arr::only($array, ['get', 'post', 'put', 'patch', 'delete']);
+            foreach ($methods as $method => $controllerAndFunction) {
+                [$controller, $function] = explode('@', $controllerAndFunction);
+                $this->createHttpApiRequest($method, $controller, $function);
+                if (isset($array['where'])) {
+                    $content = $this->getStub('routes.method.where');
+                    $content = str_replace('{{ method }}', $method, $content);
+                    $content = str_replace('{{ controller }}', $controllerAndFunction, $content);
+                    $wheres = [];
+                    foreach ($array['where'] as $key => $regexp) {
+                        $where = $this->getStub('routes.array.key.value');
+                        $where = str_replace('{{ key }}', $key, $where);
+                        $regexp = var_export($regexp, true);
+                        $where = str_replace('{{ value }}', $regexp, $where);
+                        $wheres[] = trim($where);
+                    }
+                    $where = join("\n", $wheres);
+                    $where = $this->addTabs($where, 1);
+                    $content = str_replace('{{ attrs }}', $where, $content);
+                } else {
+                    $content = $this->getStub('routes.method');
+                    $content = str_replace('{{ method }}', $method, $content);
+                    $content = str_replace('{{ function }}', $function, $content);
+                    $content = str_replace('{{ controller }}', $controller, $content);
+                }
+                $contents[] = $content;
+            }
+            $content = join("\n", $contents);
+            $content = $this->addTabs($content, 1);
+            $group = str_replace('{{ content }}', $content, $group);
+            $groups[] = $group;
+        }
+        $content = join("\n", $groups);
+        $content = $this->addTabs($content, 0);
+        return $content;
+    }
+
+    public function generateApiRoutes()
+    {
+        $pattern = '/#start::artifice(.*)#end::artifice|#::artifice/s';
+        $file = base_path("routes/api.php");
+        $content = file_get_contents($file);
+        $text = $this->createApiRoutes();
+        $text = "#start::artifice\n$text\n$1\n#end::artifice";
+        $content = preg_replace($pattern, $text, $content);
+        file_put_contents($file, $content);
+    }
     public function generateRoutes()
     {
         $pattern = '/#start::artifice.*#end::artifice|#::artifice/s';
-        $allRoutes = $this->data['routes'] ?? [];
+        $allRoutes = ($this->data['routes'] ?? []) + ['api' => [], 'web' => []];
         foreach ($allRoutes as $channel => $routes) {
             $text = $this->createRoutes($routes);
             $file = base_path("routes/$channel.php");
@@ -260,7 +524,10 @@ class BuildCommand extends Command
             file_put_contents($file, $content);
         }
     }
-
+    public function dataToArray(array $data, string $key)
+    {
+        return preg_split('/(?:\s+)?\,(?:\s+)?/s', data_get($data, $key, ''));
+    }
     public function createRoutes(array $routes, int $tab = 0)
     {
         $groups = [];
@@ -314,7 +581,8 @@ class BuildCommand extends Command
                 } else {
                     $content = $this->getStub('routes.method');
                     $content = str_replace('{{ method }}', $method, $content);
-                    $content = str_replace('{{ controller }}', $controllerAndFunction, $content);
+                    $content = str_replace('{{ function }}', $function, $content);
+                    $content = str_replace('{{ controller }}', $controller, $content);
                 }
                 $contents[] = $content;
             }
@@ -332,6 +600,19 @@ class BuildCommand extends Command
     {
         $tabs = str_repeat(' ', $tab * 4);
         return preg_replace('/^/m', $tabs, $content);
+    }
+    public function createHttpApiRequest(string $method, string $controller, string $function)
+    {
+        if (in_array($method, ['put', 'post', 'patch']) === false) {
+            return;
+        }
+        $function = ucfirst($function);
+        $name = preg_replace('/ApiController$/s', "ApiRequest$function", $controller);
+        $file = app_path("Http/Requests/$name.php");
+        $class = "App\\Requests\\$name";
+        $content = $this->getStub('request.class');
+        $content = str_replace('{{ name }}', $name, $content);
+        file_put_contents($file, $content);
     }
     public function generateController(string $method, string $controller, string $function)
     {
@@ -367,7 +648,7 @@ class BuildCommand extends Command
             $requestContent = str_replace('{{ name }}', $requestName, $requestContent);
             file_put_contents($requestFile, $requestContent);
         }
-        if (in_array($method, ['put', 'post'])) {
+        if (in_array($method, ['put', 'post', 'patch'])) {
             $content = str_replace("\nuse $requestClass;", '', $content);
             $content = preg_replace('/(\vnamespace \S+;)\s+\v/s', "$1\n\nuse $requestClass;\n", $content, 1);
         }
@@ -395,9 +676,9 @@ class BuildCommand extends Command
     }
     public function getMigrationTable(string $model, string $relation)
     {
-        $name = [$model, $relation];
+        $name = [lcfirst($model), lcfirst($relation)];
         sort($name);
-        return strtolower(join('_', $name));
+        return join('_', $name);
     }
     public function addPolicy(string $name)
     {
@@ -428,9 +709,9 @@ class BuildCommand extends Command
                     }
                     $temp = [];
                     $name = $this->getPivotName($model, $relation);
-                    $key = strtolower("{$relation}_id");
+                    $key = lcfirst("{$relation}_id");
                     $temp[$key] = 'id foreign';
-                    $key = strtolower("{$model}_id");
+                    $key = lcfirst("{$model}_id");
                     $temp[$key] = 'id foreign';
                     $items[$name] = $pivot + $temp;
                 }
@@ -508,7 +789,7 @@ class BuildCommand extends Command
         }
 
         $values = array_values($data ?? []);
-        $keys = array_keys($data);
+        $keys = array_keys($data ?? []);
 
         $matchs = preg_grep('/^routes/', $keys);
         $default = $this->option('default-route');

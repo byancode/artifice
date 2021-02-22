@@ -1,1 +1,1 @@
-Route::{{ method }}('/', '{{ controller }}');
+Route::{{ method }}('/', ['App\Http\Controllers\{{ controller }}', '{{ function }}']);
