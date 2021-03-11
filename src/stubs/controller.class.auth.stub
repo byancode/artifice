@@ -3,37 +3,37 @@
 namespace App\Http\Controllers;
 
 {{ uses }}
-use App\Http\Requests\{{ model }}ApiRequestLogin;
-use App\Http\Requests\{{ model }}ApiRequestRegister;
-use App\Http\Requests\{{ model }}ApiRequestCreate;
-use App\Http\Requests\{{ model }}ApiRequestSearch;
-use App\Http\Requests\{{ model }}ApiRequestUpdate;
-use App\Http\Requests\{{ model }}ApiRequestCreateMany;
-use App\Http\Requests\{{ model }}ApiRequestFake;
-use App\Http\Requests\{{ model }}ApiRequestFakeMany;
+use App\Http\Requests\{{ model }}RequestLogin;
+use App\Http\Requests\{{ model }}RequestRegister;
+use App\Http\Requests\{{ model }}RequestCreate;
+use App\Http\Requests\{{ model }}RequestSearch;
+use App\Http\Requests\{{ model }}RequestUpdate;
+use App\Http\Requests\{{ model }}RequestCreateMany;
+use App\Http\Requests\{{ model }}RequestFake;
+use App\Http\Requests\{{ model }}RequestFakeMany;
 use App\Models\{{ model }};
 
 class {{ controller }} extends Controller
 {
-    public function login({{ model }}ApiRequestLogin $request)
+    public function login({{ model }}RequestLogin $request)
     {
         return response([]);
     }
-    public function register({{ model }}ApiRequestRegister $request)
+    public function register({{ model }}RequestRegister $request)
     {
         ${{ name }} = {{ model }}::create($request->validated());
         return response([
             'data' => ${{ name }},
         ]);
     }
-    public function create({{ model }}ApiRequestCreate $request)
+    public function create({{ model }}RequestCreate $request)
     {
         ${{ name }} = {{ model }}::create($request->validated());
         return response([
             'data' => ${{ name }},
         ]);
     }
-    public function search({{ model }}ApiRequestSearch $request)
+    public function search({{ model }}RequestSearch $request)
     {
         return response({{ model }}::paginate(20));
     }
@@ -47,7 +47,7 @@ class {{ controller }} extends Controller
             'data' => ${{ name }},
         ]);
     }
-    public function update({{ model }}ApiRequestUpdate $request)
+    public function update({{ attrs }})
     {
         ${{ name }}->update($request->validated());
         return response([
@@ -59,21 +59,21 @@ class {{ controller }} extends Controller
         ${{ name }}->delete();
         return response([]);
     }
-    public function createMany({{ model }}ApiRequestCreateMany $request)
+    public function createMany({{ model }}RequestCreateMany $request)
     {
         $list = {{ model }}::createMany($request->validated());
         return response([
             'data' => $list,
         ]);
     }
-    public function createOneFake({{ model }}ApiRequestFake $request)
+    public function createOneFake({{ model }}RequestFake $request)
     {
         ${{ name }} = {{ model }}::factory()->create($request->validated());
         return response([
             'data' => ${{ name }},
         ]);
     }
-    public function createFakes({{ model }}ApiRequestFakeMany $request, $count)
+    public function createFakes({{ model }}RequestFakeMany $request, $count)
     {
         $list = {{ model }}::factory()->count(intval($count))->create($request->validated());
         return response([

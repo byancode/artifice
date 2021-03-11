@@ -2,42 +2,80 @@
 
 namespace App\Http\Controllers;
 
-class {{ controller }} extends Controller
+{{ uses }}
+use App\Models\{{ pc }};
+use App\Models\{{ mc }};
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestCreate;
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestSearch;
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestUpdate;
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestCreateMany;
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestFake;
+use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestFakeMany;
+
+class {{ pc }}MorphMany{{ mc }}Controller extends Controller
 {
-    public function create()
+    public function create({{ pc }}MorphMany{{ mc }}RequestCreate $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ mm }} = ${{ ps }}->{{ mm }}()->create($request->validated());
+        return response([
+            'data' => ${{ mm }},
+        ]);
     }
-    public function search()
+    public function search({{ pc }}MorphMany{{ mc }}RequestSearch $request, {{ pc }} ${{ ps }})
     {
-        //
+        return response(${{ ps }}->{{ mm }}()->paginate(20));
     }
-    public function index()
+    public function index({{ pc }} ${{ ps }})
     {
-        //
+        return response(${{ ps }}->{{ mm }}()->paginate(20));
     }
-    public function show()
+    public function show({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function update()
+    public function update({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ms }}->update($request->validated());
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function delete()
+    public function delete({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ms }}->delete();
+        return response([]);
     }
-    public function createMany()
+    public function createMany({{ pc }}MorphMany{{ mc }}RequestCreateMany $request, {{ pc }} ${{ ps }})
     {
-        //
+        $list = ${{ ps }}->{{ mm }}()->createMany(
+            $request->items
+        );
+        return response([
+            'data' => $list
+        ]);
     }
-    public function createOneFake()
+    public function createOneFake({{ pc }}MorphMany{{ mc }}RequestCreateOneFake $request, {{ pc }} ${{ ps }})
     {
-        //
+        $ms = ${{ ps }}->{{ ps }}()->create(array_merge(
+            $request->validated(),
+            [ 'test' => true ]
+        ));
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function createFakes()
+    public function createFakes({{ pc }}MorphMany{{ mc }}RequestCreateManyFakes $request, {{ pc }} ${{ ps }}, $count)
     {
-        //
+        $list = ${{ ps }}->{{ mm }}()->createMany(
+            factory({{ pc }}::class, $count)->make(array_merge(
+                $request->validated(),
+                [ 'test' => true ]
+            ))->toArray()
+        );
+        return response([
+            'data' => $list
+        ]);
     }
 }

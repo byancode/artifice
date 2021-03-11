@@ -1,10 +1,17 @@
 models:
-  User:
+  User|api:
     name: string
     email: unique string
     password: string
     remember_token: nullable string:100
     email_verified_at: nullable timestamp
+    __permissions:
+      reader: view
+      demo: viewFake, createFake, updateFake, retrieveFake, forceDeleteFake
+      guest: view, createFake, updateFake, retrieveFake, forceDeleteFake
+      editor: viewAny, create, updateAny, retrieve
+      admin: viewAny, create, updateAny, deleteAny, retrieveAny
+      owner: viewAny, updateAny, deleteAny, retrieveAny, forceDeleteAny
   Entry:
     name: string
     description: string
@@ -26,12 +33,10 @@ models:
     __index:
       - unique: id, uuid
       - unique: typeable_id, typeable_type
-  Merchant:
+  Merchant|=:
     name: string
     password: string
     remember_token: string
-    __model:
-      auth: true
   Comment:
     body: string
     relationships:
@@ -65,10 +70,15 @@ routes.api:
       delete: UserController@remove
 
     /post/{post}:
-      post: UserController@create
+      post: PostController@create
 
       where:
         post: ^[0-9]+$
 
   /owner + auth:owner:
     post: OwnerController@create
+
+artifice.deny.routes:
+  /user/{user}/post:
+    /create: post
+    /{post}: post

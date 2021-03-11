@@ -312,22 +312,22 @@ class BuildCommand extends Command
     {
         $name = lcfirst($model);
 
-        $path = "$base/" . Str::kebab($model);
+        $path = "/" . Str::kebab($model);
 
         $key = $base ? 'dinamic' : 'simple';
-        $controller = "{$model}ApiController";
+        $controller = "{$model}Controller";
         $file = app_path("Http/Controllers/$controller.php");
         $content = $this->getStub("controller.class.$key");
 
-        $this->apis["$path/create"]['post'] = "$controller@create";
-        $this->apis["$path/search"]['post'] = "$controller@search";
-        $this->apis["$path/list"]['get'] = "$controller@list";
-        $this->apis["$path/{{$name}}"]['get'] = "$controller@show";
-        $this->apis["$path/{{$name}}"]['post'] = "$controller@update";
-        $this->apis["$path/{{$name}}"]['delete'] = "$controller@delete";
-        $this->apis["$path/many"]['post'] = "$controller@createMany";
-        $this->apis["$path/fake"]['post'] = "$controller@createOneFake";
-        $this->apis["$path/fake/{count}"]['post'] = "$controller@createFakes";
+        $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
+        $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
+        $this->apis[$base][$path]["/list"]['get'] = "$controller@index";
+        $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
+        $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$base][$path]["/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis[$base][$path]["/many"]['post'] = "$controller@createMany";
+        $this->apis[$base][$path]["/fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base][$path]["/fake/{count}"]['post'] = "$controller@createFakes";
 
         $content = str_replace('{{ controller }}', $controller, $content);
         $content = str_replace('{{ model }}', $model, $content);
@@ -342,7 +342,7 @@ class BuildCommand extends Command
         $name = lcfirst($model);
         $kebab = '/' . Str::kebab($model);
 
-        $controller = "{$model}ApiController";
+        $controller = "{$model}Controller";
         $file = app_path("Http/Controllers/$controller.php");
         $content = $this->getStub("controller.class.$type");
 
@@ -350,38 +350,38 @@ class BuildCommand extends Command
         $parent = lcfirst($args[1] ?? '');
 
         if (count($args) > 0) {
-            $path = "$base/" . join('/', array_map(function ($model) {
+            $path = "/" . join('/', array_map(function ($model) {
                 $path = Str::kebab($model);
                 $name = lcfirst($model);
                 return "$path/{{$name}}";
             }, $args));
         } else {
-            $path = $base;
+            $path = '';
         }
         if ($base !== $kebab) {
             $path .= $kebab;
         }
 
-        $this->apis["$path/create"]['post'] = "$controller@create";
-        $this->apis["$path/search"]['post'] = "$controller@search";
-        $this->apis["$path/list"]['get'] = "$controller@list";
-        $this->apis["$path/{{$name}}"]['get'] = "$controller@show";
-        $this->apis["$path/{{$name}}"]['post'] = "$controller@update";
-        $this->apis["$path/{{$name}}"]['delete'] = "$controller@delete";
-        $this->apis["$path/many"]['post'] = "$controller@createMany";
-        $this->apis["$path/fake"]['post'] = "$controller@createOneFake";
-        $this->apis["$path/fake/{count}"]['post'] = "$controller@createFakes";
+        $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
+        $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
+        $this->apis[$base][$path]["/list"]['get'] = "$controller@index";
+        $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
+        $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$base][$path]["/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis[$base][$path]["/many"]['post'] = "$controller@createMany";
+        $this->apis[$base][$path]["/fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base][$path]["/fake/{count}"]['post'] = "$controller@createFakes";
 
         if ($type === 'auth') {
-            $this->apis["$path/login"]['post'] = "$controller@login";
-            $this->apis["$path/register"]['post'] = "$controller@register";
+            $this->apis[$base][$path]["/login"]['post'] = "$controller@login";
+            $this->apis[$base][$path]["/register"]['post'] = "$controller@register";
         } elseif ($type === 'belongsToMany') {
-            $this->apis["$path/sync"]['post'] = "$controller@pivotSync";
-            $this->apis["$path/attach"]['post'] = "$controller@pivotAttach";
-            $this->apis["$path/detach"]['post'] = "$controller@pivotDetach";
-            $this->apis["$path/toggle"]['post'] = "$controller@pivotToggle";
-            $this->apis["$path/{{$name}}"]['patch'] = "$controller@pivotUpdate";
-            $this->apis["$path/sync-without-detaching"]['post'] = "$controller@pivotSyncWithoutDetaching";
+            $this->apis[$base][$path]["/sync"]['post'] = "$controller@pivotSync";
+            $this->apis[$base][$path]["/attach"]['post'] = "$controller@pivotAttach";
+            $this->apis[$base][$path]["/detach"]['post'] = "$controller@pivotDetach";
+            $this->apis[$base][$path]["/toggle"]['post'] = "$controller@pivotToggle";
+            $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@pivotUpdate";
+            $this->apis[$base][$path]["/sync-without-detaching"]['post'] = "$controller@pivotSyncWithoutDetaching";
         }
 
         if ($base !== $kebab) {
@@ -467,7 +467,7 @@ class BuildCommand extends Command
             $methods = Arr::only($array, ['get', 'post', 'put', 'patch', 'delete']);
             foreach ($methods as $method => $controllerAndFunction) {
                 [$controller, $function] = explode('@', $controllerAndFunction);
-                $this->createHttpApiRequest($method, $controller, $function);
+                $this->createHttpRequest($method, $controller, $function);
                 if (isset($array['where'])) {
                     $content = $this->getStub('routes.method.where');
                     $content = str_replace('{{ method }}', $method, $content);
@@ -493,6 +493,7 @@ class BuildCommand extends Command
             }
             $content = join("\n", $contents);
             $content = $this->addTabs($content, 1);
+            $content .= "\n" . $this->createRoutes($array, 1);
             $group = str_replace('{{ content }}', $content, $group);
             $groups[] = $group;
         }
@@ -601,13 +602,13 @@ class BuildCommand extends Command
         $tabs = str_repeat(' ', $tab * 4);
         return preg_replace('/^/m', $tabs, $content);
     }
-    public function createHttpApiRequest(string $method, string $controller, string $function)
+    public function createHttpRequest(string $method, string $controller, string $function)
     {
         if (in_array($method, ['put', 'post', 'patch']) === false) {
             return;
         }
         $function = ucfirst($function);
-        $name = preg_replace('/ApiController$/s', "ApiRequest$function", $controller);
+        $name = preg_replace('/Controller$/s', "Request$function", $controller);
         $file = app_path("Http/Requests/$name.php");
         $class = "App\\Requests\\$name";
         $content = $this->getStub('request.class');

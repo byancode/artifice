@@ -2,66 +2,131 @@
 
 namespace App\Http\Controllers;
 
-class {{ controller }} extends Controller
+use App\Models\{{ pc }};
+use App\Models\{{ mc }};
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestCreate;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestUpdate;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestCreateMany;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestCreateOneFake;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestCreateManyFakes;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotSyncWithoutDetaching;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotAttach;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotDetach;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotToggle;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotSync;
+use App\Http\Requests\{{ pc }}BelongsToMany{{ mc }}RequestPivotUpdate;
+
+class {{ pc }}BelongsToMany{{ mc }}Controller extends Controller
 {
-    public function create()
+    public function create({{ pc }}BelongsToMany{{ mc }}RequestCreate $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ms }} = {{ mc }}::create($request->validated());
+        ${{ ps }}->{{ mm }}()->attach(${{ ms }});
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function search()
+    public function search({{ pc }}BelongsToMany{{ mc }}RequestSearch $request, {{ pc }} ${{ ps }})
     {
-        //
+        return response(${{ ps }}->{{ mm }}()->paginate(20));
     }
-    public function index()
+    public function index({{ pc }} ${{ ps }})
     {
-        //
+        return response(${{ ps }}->{{ mm }}()->paginate(20));
     }
-    public function show()
+    public function show({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function update()
+    public function update({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ms }}->update($request->validated());
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function delete()
+    public function delete({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->detach(${{ ms }});
+        ${{ ms }}->delete();
+        return response([]);
     }
-    public function createMany()
+    public function createMany({{ pc }}BelongsToMany{{ mc }}RequestCreateMany $request, {{ pc }} ${{ ps }})
     {
-        //
+        $list = {{ mc }}::createMany(
+            $request->items
+        );
+        ${{ ps }}->{{ mm }}()->attach($list);
+        return response([
+            'data' => $list
+        ]);
     }
-    public function createOneFake()
+    public function createOneFake({{ pc }}BelongsToMany{{ mc }}RequestCreateOneFake $request, {{ pc }} ${{ ps }})
     {
-        //
+        $ms = {{ mc }}::create(array_merge(
+            $request->validated(),
+            [ 'test' => true ]
+        ));
+        ${{ ps }}->{{ mm }}()->attach($ms);
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function createFakes()
+    public function createFakes({{ pc }}BelongsToMany{{ mc }}RequestCreateManyFakes $request, {{ pc }} ${{ ps }}, $count)
     {
-        //
+        $list = {{ mc }}::createMany(
+            factory({{ pc }}::class, $count)->make(array_merge(
+                $request->validated(),
+                [ 'test' => true ]
+            ))->toArray()
+        );
+        ${{ ps }}->{{ mm }}()->attach($list);
+        return response([
+            'data' => $list
+        ]);
     }
-    public function pivotSyncWithoutDetaching()
+    public function pivotSyncWithoutDetaching({{ pc }}BelongsToMany{{ mc }}RequestPivotSyncWithoutDetaching $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->syncWithoutDetaching($request->list);
+        return response([
+            'success' => true,
+        ]);
     }
-    public function pivotAttach()
+    public function pivotAttach({{ pc }}BelongsToMany{{ mc }}RequestPivotAttach $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->attach($request->list);
+        return response([
+            'success' => true,
+        ]);
     }
-    public function pivotDetach()
+    public function pivotDetach({{ pc }}BelongsToMany{{ mc }}RequestPivotDetach $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->detach($request->list);
+        return response([
+            'success' => true,
+        ]);
     }
-    public function pivotToggle()
+    public function pivotToggle({{ pc }}BelongsToMany{{ mc }}RequestPivotToggle $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->toggle($request->list);
+        return response([
+            'success' => true,
+        ]);
     }
-    public function pivotSync()
+    public function pivotSync({{ pc }}BelongsToMany{{ mc }}RequestPivotSync $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->sync($request->list);
+        return response([
+            'success' => true,
+        ]);
     }
-    public function pivotUpdate()
+    public function pivotUpdate({{ pc }}BelongsToMany{{ mc }}RequestPivotUpdate $request, {{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ps }}->{{ mm }}()->updateExistingPivot(${{ ms }}, $request->validated());
+        return response([
+            'success' => true,
+        ]);
     }
 }

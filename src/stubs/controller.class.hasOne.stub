@@ -2,42 +2,42 @@
 
 namespace App\Http\Controllers;
 
-class {{ controller }} extends Controller
+use App\Models\{{ pc }};
+use App\Models\{{ mc }};
+use App\Http\Requests\{{ pc }}HasOne{{ mc }}RequestCreate;
+use App\Http\Requests\{{ pc }}HasOne{{ mc }}RequestUpdate;
+
+class {{ pc }}HasOne{{ mc }}Controller extends Controller
 {
-    public function create()
+    public function create({{ pc }}HasOne{{ mc }}RequestCreate $request, {{ pc }} ${{ ps }})
     {
-        //
+        ${{ ms }} = ${{ ps }}->{{ ms }}()->create($request->validated());
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function search()
+    public function index({{ pc }} ${{ ps }})
     {
-        //
+        return response([
+            'data' => ${{ ps }}->{{ ms }},
+        ]);
     }
-    public function index()
+    public function show({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function show()
+    public function update({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
+        ${{ ms }}->update($request->validated());
+        return response([
+            'data' => ${{ ms }},
+        ]);
     }
-    public function update()
+    public function delete({{ pc }} ${{ ps }}, {{ mc }} ${{ ms }})
     {
-        //
-    }
-    public function delete()
-    {
-        //
-    }
-    public function createMany()
-    {
-        //
-    }
-    public function createOneFake()
-    {
-        //
-    }
-    public function createFakes()
-    {
-        //
+        ${{ ms }}->delete();
+        return response([]);
     }
 }
