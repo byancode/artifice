@@ -1,0 +1,27 @@
+# relation many
+
+get    /user/posts
+post   /user/posts/create
+post   /user/posts/create-many
+post   /user/posts/search
+get    /user/posts/{post}
+post   /user/posts/{post}
+delete /user/posts/{post}
+post   /user/posts/create-fake
+post   /user/posts/create-fake/{count}
+
+# relation one
+
+get    /user/post
+post   /user/post/create
+post   /user/post/update
+post   /user/post/insert
+delete /user/post/remove
+
+# no relationable
+
+get    /post
+post   /post/create
+post   /post/create-many
+post   /post/update
+delete /post/remove

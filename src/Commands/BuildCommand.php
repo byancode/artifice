@@ -294,7 +294,7 @@ class BuildCommand extends Command
             }
         } else {
             foreach ($relationables as $model => $attrs) {
-                $this->generateApiRest('', $model, 'auth');
+                $this->generateApiRest('', $model, 'basic');
             }
             foreach ($unrelationables as $relation => $attrs) {
                 $this->generateSimpleApiRest('', $relation);
@@ -314,10 +314,9 @@ class BuildCommand extends Command
 
         $path = "/" . Str::kebab($model);
 
-        $key = $base ? 'dinamic' : 'simple';
         $controller = "{$model}Controller";
         $file = app_path("Http/Controllers/$controller.php");
-        $content = $this->getStub("controller.class.$key");
+        $content = $this->getStub("controller.class.basic");
 
         $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
         $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
@@ -330,8 +329,9 @@ class BuildCommand extends Command
         $this->apis[$base][$path]["/fake/{count}"]['post'] = "$controller@createFakes";
 
         $content = str_replace('{{ controller }}', $controller, $content);
-        $content = str_replace('{{ model }}', $model, $content);
-        $content = str_replace('{{ name }}', $name, $content);
+        $content = str_replace('{{ mc }}', $model, $content);
+        $content = str_replace('{{ ms }}', ucfirst($name), $content);
+        $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
 
         if (array_key_exists($file, $this->apiFiles) === false) {
             $this->apiFiles[$file] = $content;
@@ -388,21 +388,13 @@ class BuildCommand extends Command
             $history[] = $model;
         }
 
-        $attrs = join(", ", array_map(function ($model) {
-            $name = lcfirst($model);
-            return "$model \${$name}";
-        }, $args));
-
-        $uses = join("\n", array_map(function ($model) {
-            return "use {$this->getModelClass($model)};";
-        }, $history));
-
         $content = str_replace('{{ controller }}', $controller, $content);
-        $content = str_replace('{{ parent }}', $parent, $content);
-        $content = str_replace('{{ model }}', $model, $content);
-        $content = str_replace('{{ attrs }}', $attrs, $content);
-        $content = str_replace('{{ name }}', $name, $content);
-        $content = str_replace('{{ uses }}', $uses, $content);
+        $content = str_replace('{{ pc }}', $parent, $content);
+        $content = str_replace('{{ ps }}', $parent, $content);
+        $content = str_replace('{{ pm }}', $parent, $content);
+        $content = str_replace('{{ mc }}', $model, $content);
+        $content = str_replace('{{ ms }}', $name, $content);
+        $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
 
         if (array_key_exists($file, $this->apiFiles) === false) {
             $this->apiFiles[$file] = $content;
