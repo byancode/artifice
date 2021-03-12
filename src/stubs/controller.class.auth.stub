@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-{{ uses }}
+use App\Models\{{ model }};
 use App\Http\Requests\{{ model }}RequestLogin;
 use App\Http\Requests\{{ model }}RequestRegister;
 use App\Http\Requests\{{ model }}RequestCreate;
@@ -11,7 +11,6 @@ use App\Http\Requests\{{ model }}RequestUpdate;
 use App\Http\Requests\{{ model }}RequestCreateMany;
 use App\Http\Requests\{{ model }}RequestFake;
 use App\Http\Requests\{{ model }}RequestFakeMany;
-use App\Models\{{ model }};
 
 class {{ controller }} extends Controller
 {

@@ -276,6 +276,10 @@ class BuildCommand extends Command
             ModelModifier::create($model, $value);
         }
     }
+    public function getModelClass(string $model)
+    {
+        return "App\\Models\\$model";
+    }
     public function generateApiRests()
     {
         $models = $this->getUserModels();
@@ -283,13 +287,11 @@ class BuildCommand extends Command
         $unrelationables = $this->getUnRelationableModels();
         if (count($models) > 0) {
             foreach ($models as $model => $attrs) {
-                $base = '/' . Str::kebab($model);
-                $this->generateApiRest($base, $model, 'auth');
+                $this->generateApiRest($model, $model, 'auth');
             }
             foreach ($models as $model => $attrs) {
-                $base = '/' . Str::kebab($model);
                 foreach ($unrelationables as $relation => $attrs) {
-                    $this->generateSimpleApiRest($base, $relation);
+                    $this->generateAuthApiRest($model, $relation);
                 }
             }
         } else {
@@ -297,21 +299,18 @@ class BuildCommand extends Command
                 $this->generateApiRest('', $model, 'basic');
             }
             foreach ($unrelationables as $relation => $attrs) {
-                $this->generateSimpleApiRest('', $relation);
+                $this->generateBasicApiRest($relation);
             }
         }
         foreach ($this->apiFiles as $file => $content) {
             file_put_contents($file, $content);
         }
     }
-    public function getModelClass(string $model)
-    {
-        return "App\\Models\\$model";
-    }
-    public function generateSimpleApiRest(string $base, string $model)
+    public function generateAuthApiRest(string $User, string $model)
     {
         $name = lcfirst($model);
 
+        $base = '/' . Str::kebab($User);
         $path = "/" . Str::kebab($model);
 
         $controller = "{$model}Controller";
@@ -337,28 +336,62 @@ class BuildCommand extends Command
             $this->apiFiles[$file] = $content;
         }
     }
-    public function generateApiRest(string $base, string $model, string $type, array $history = [])
+    public function generateBasicApiRest(string $model)
     {
-        $relation = ucfirst($type);
         $name = lcfirst($model);
-        $kebab = '/' . Str::kebab($model);
+
+        $path = "/" . Str::kebab($model);
 
         $controller = "{$model}Controller";
         $file = app_path("Http/Controllers/$controller.php");
+        $content = $this->getStub("controller.class.basic");
+
+        $this->apis[$path]["/create"]['post'] = "$controller@create";
+        $this->apis[$path]["/search"]['post'] = "$controller@search";
+        $this->apis[$path]["/list"]['get'] = "$controller@index";
+        $this->apis[$path]["/{{$name}}"]['get'] = "$controller@show";
+        $this->apis[$path]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$path]["/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis[$path]["/create-many"]['post'] = "$controller@createMany";
+        $this->apis[$path]["/create-fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$path]["/create-fake/{count}"]['post'] = "$controller@createFakes";
+
+        $content = str_replace('{{ controller }}', $controller, $content);
+        $content = str_replace('{{ mc }}', $model, $content);
+        $content = str_replace('{{ ms }}', ucfirst($name), $content);
+        $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
+
+        if (array_key_exists($file, $this->apiFiles) === false) {
+            $this->apiFiles[$file] = $content;
+        }
+    }
+    public function generateApiRest(string $user, string $model, string $type, string $parent = null)
+    {
+        $name = lcfirst($model);
+        $relation = ucfirst($type);
+        $kebab = '/' . Str::kebab($model);
+
+        if (empty($parent)) {
+            $controller = "{$user}Controller";
+        } else {
+            $controller = "{$parent}{$relation}{$model}Controller";
+        }
+
+        $file = app_path("Http/Controllers/$controller.php");
         $content = $this->getStub("controller.class.$type");
 
-        $args = array_slice($history, -1);
-        $parent = lcfirst($args[1] ?? '');
+        if (empty($user) === false) {
+            $base = '/' . Str::kebab($user);
+        } else {
+            $base = '';
+        }
 
-        if (count($args) > 0) {
-            $path = "/" . join('/', array_map(function ($model) {
-                $path = Str::kebab($model);
-                $name = lcfirst($model);
-                return "$path/{{$name}}";
-            }, $args));
+        if (isset($parent)) {
+            $path = "/" . Str::kebab($parent);
         } else {
             $path = '';
         }
+
         if ($base !== $kebab) {
             $path .= $kebab;
         }
@@ -388,7 +421,7 @@ class BuildCommand extends Command
         }
 
         if ($base !== $kebab) {
-            $history[] = $model;
+            $parent = $model;
         }
 
         $content = str_replace('{{ controller }}', $controller, $content);
@@ -418,7 +451,7 @@ class BuildCommand extends Command
             'hasOne',
         ] as $relation) {
             foreach ($$relation as $model) {
-                $this->generateApiRest($base, $model, $relation, $history);
+                $this->generateApiRest($base, $model, $relation, $parent);
             }
         }
     }

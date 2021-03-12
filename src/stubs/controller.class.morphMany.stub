@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-{{ uses }}
 use App\Models\{{ pc }};
 use App\Models\{{ mc }};
 use App\Http\Requests\{{ pc }}MorphMany{{ mc }}RequestCreate;
