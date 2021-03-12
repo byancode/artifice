@@ -20,8 +20,11 @@ delete /user/post/remove
 
 # no relationable
 
-get    /post
+get    /post/list
+post   /post/search
 post   /post/create
-post   /post/create-many
 post   /post/update
 delete /post/remove
+post   /post/create-many
+post   /post/create-fake
+post   /post/create-fake/{count}

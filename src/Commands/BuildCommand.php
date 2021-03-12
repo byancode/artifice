@@ -324,9 +324,9 @@ class BuildCommand extends Command
         $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
         $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
         $this->apis[$base][$path]["/{{$name}}"]['delete'] = "$controller@delete";
-        $this->apis[$base][$path]["/many"]['post'] = "$controller@createMany";
-        $this->apis[$base][$path]["/fake"]['post'] = "$controller@createOneFake";
-        $this->apis[$base][$path]["/fake/{count}"]['post'] = "$controller@createFakes";
+        $this->apis[$base][$path]["/create-many"]['post'] = "$controller@createMany";
+        $this->apis[$base][$path]["/create-fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base][$path]["/create-fake/{count}"]['post'] = "$controller@createFakes";
 
         $content = str_replace('{{ controller }}', $controller, $content);
         $content = str_replace('{{ mc }}', $model, $content);
@@ -339,6 +339,7 @@ class BuildCommand extends Command
     }
     public function generateApiRest(string $base, string $model, string $type, array $history = [])
     {
+        $relation = ucfirst($type);
         $name = lcfirst($model);
         $kebab = '/' . Str::kebab($model);
 
@@ -364,13 +365,15 @@ class BuildCommand extends Command
 
         $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
         $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
-        $this->apis[$base][$path]["/list"]['get'] = "$controller@index";
+        $this->apis[$base][$path]["/"]['get'] = "$controller@index";
         $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
         $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@retrieve";
         $this->apis[$base][$path]["/{{$name}}"]['delete'] = "$controller@delete";
-        $this->apis[$base][$path]["/many"]['post'] = "$controller@createMany";
-        $this->apis[$base][$path]["/fake"]['post'] = "$controller@createOneFake";
-        $this->apis[$base][$path]["/fake/{count}"]['post'] = "$controller@createFakes";
+        $this->apis[$base][$path]["/{{$name}}/force"]['delete'] = "$controller@deleteForce";
+        $this->apis[$base][$path]["/create-many"]['post'] = "$controller@createMany";
+        $this->apis[$base][$path]["/create-fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base][$path]["/create-fake/{count}"]['post'] = "$controller@createFakes";
 
         if ($type === 'auth') {
             $this->apis[$base][$path]["/login"]['post'] = "$controller@login";
@@ -390,10 +393,10 @@ class BuildCommand extends Command
 
         $content = str_replace('{{ controller }}', $controller, $content);
         $content = str_replace('{{ pc }}', $parent, $content);
-        $content = str_replace('{{ ps }}', $parent, $content);
-        $content = str_replace('{{ pm }}', $parent, $content);
+        $content = str_replace('{{ ps }}', ucfirst($parent), $content);
+        $content = str_replace('{{ pm }}', Str::plural($parent, 2), $content);
         $content = str_replace('{{ mc }}', $model, $content);
-        $content = str_replace('{{ ms }}', $name, $content);
+        $content = str_replace('{{ ms }}', ucfirst($name), $content);
         $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
 
         if (array_key_exists($file, $this->apiFiles) === false) {
@@ -406,22 +409,17 @@ class BuildCommand extends Command
         $morphOne = $this->dataToArray($data, 'relationships.morphOne');
         $hasMany = $this->dataToArray($data, 'relationships.hasMany');
         $hasOne = $this->dataToArray($data, 'relationships.hasOne');
-        $relations = array_merge($belongsToMany, $morphMany, $morphOne, $hasMany, $hasOne);
-        $relations = array_filter(array_unique($relations));
 
-        foreach ($relations as $relation) {
-            if (in_array($relation, $belongsToMany)) {
-                $type = 'belongsToMany';
-            } elseif (in_array($relation, $morphMany)) {
-                $type = 'morphMany';
-            } elseif (in_array($relation, $morphOne)) {
-                $type = 'morphOne';
-            } elseif (in_array($relation, $hasMany)) {
-                $type = 'hasMany';
-            } elseif (in_array($relation, $hasOne)) {
-                $type = 'hasOne';
+        foreach ([
+            'belongsToMany',
+            'morphMany',
+            'morphOne',
+            'hasMany',
+            'hasOne',
+        ] as $relation) {
+            foreach ($$relation as $model) {
+                $this->generateApiRest($base, $model, $relation, $history);
             }
-            $this->generateApiRest($base, $relation, $type, $history);
         }
     }
 
