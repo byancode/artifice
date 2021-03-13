@@ -396,9 +396,9 @@ class BuildCommand extends Command
             $path .= $kebab;
         }
 
+        $this->apis[$base][$path]['get'] = "$controller@index";
         $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
         $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
-        $this->apis[$base][$path]["/"]['get'] = "$controller@index";
         $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
         $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
         $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@retrieve";

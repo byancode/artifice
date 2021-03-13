@@ -67,14 +67,20 @@ class {{ controller }} extends Controller
     }
     public function createOneFake({{ model }}RequestFake $request)
     {
-        ${{ name }} = {{ model }}::factory()->create($request->validated());
+        ${{ name }} = {{ model }}::factory()->create(array_merge(
+            $request->validated(),
+            ['test' => true]
+        ));
         return response([
             'data' => ${{ name }},
         ]);
     }
     public function createFakes({{ model }}RequestFakeMany $request, $count)
     {
-        $list = {{ model }}::factory()->count(intval($count))->create($request->validated());
+        $list = {{ model }}::factory()->count($count)->create(array_merge(
+            $request->validated(),
+            ['test' => true]
+        ));
         return response([
             'data' => $list,
         ]);

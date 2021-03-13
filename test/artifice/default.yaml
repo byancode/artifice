@@ -1,0 +1,22 @@
+models:
+  File:
+    disk: string
+    mime: string
+    name: string
+    path: string
+    size: string
+    meta: json default:{}
+    extension: string
+    relationships:
+      belongsToMany: File
+  Activity:
+    action: string
+    relationships:
+      morphTo: activityable, authorable
+  Role:
+    name: string
+    enable: boolean default:true
+    relationships:
+      belongsToMany: Permission
+  Permission:
+    name: string
