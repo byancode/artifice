@@ -260,9 +260,8 @@ class BuildCommand extends Command
     public function getUnRelationableModels()
     {
         return array_filter($this->getModels(), function ($data) {
-            return data_get($data, '__model.auth') !== true && (data_get($data, 'relationships.belongsToMany') === null &&
-                data_get($data, 'relationships.hasMany') === null &&
-                data_get($data, 'relationships.hasOne') === null);
+            return data_get($data, '__model.auth') !== true && (data_get($data, 'relationships.morphTo') === null &&
+                data_get($data, 'relationships.belongsTo') === null);
         });
     }
     public function generateDraft()
@@ -286,18 +285,15 @@ class BuildCommand extends Command
         $relationables = $this->getRelationableModels();
         $unrelationables = $this->getUnRelationableModels();
         if (count($models) > 0) {
-            foreach ($models as $model => $attrs) {
-                $this->generateApiRest($model, $model, 'auth');
+            foreach ($models as $user => $attrs) {
+                $this->generateAuthApiRest($user);
             }
-            foreach ($models as $model => $attrs) {
+            foreach ($models as $user => $attrs) {
                 foreach ($unrelationables as $relation => $attrs) {
-                    $this->generateAuthApiRest($model, $relation);
+                    $this->generateApiRestWithAuth($user, $relation);
                 }
             }
         } else {
-            foreach ($relationables as $model => $attrs) {
-                $this->generateApiRest('', $model, 'basic');
-            }
             foreach ($unrelationables as $relation => $attrs) {
                 $this->generateBasicApiRest($relation);
             }
@@ -306,7 +302,7 @@ class BuildCommand extends Command
             file_put_contents($file, $content);
         }
     }
-    public function generateAuthApiRest(string $User, string $model)
+    public function generateApiRestWithAuth(string $User, string $model)
     {
         $name = lcfirst($model);
 
@@ -364,15 +360,86 @@ class BuildCommand extends Command
         if (array_key_exists($file, $this->apiFiles) === false) {
             $this->apiFiles[$file] = $content;
         }
+
+        $data = $this->data['models'][$user] ?? [];
+        $belongsToMany = $this->dataToArray($data, 'relationships.belongsToMany');
+        $morphMany = $this->dataToArray($data, 'relationships.morphMany');
+        $morphOne = $this->dataToArray($data, 'relationships.morphOne');
+        $hasMany = $this->dataToArray($data, 'relationships.hasMany');
+        $hasOne = $this->dataToArray($data, 'relationships.hasOne');
+
+        foreach ([
+            'belongsToMany',
+            'morphMany',
+            'morphOne',
+            'hasMany',
+            'hasOne',
+        ] as $relation) {
+            foreach ($$relation as $model) {
+                $this->generateRelatedApiRest($user, $model, $relation);
+            }
+        }
+
     }
-    public function generateApiRest(string $user, string $model, string $type, string $parent = null)
+    public function generateAuthApiRest(string $user)
+    {
+        $name = lcfirst($user);
+        $base = '/' . Str::kebab($user);
+        $controller = "{$user}Controller";
+
+        $file = app_path("Http/Controllers/$controller.php");
+        $content = $this->getStub("controller.class.auth");
+
+        $this->apis[$base]['/me']['get'] = "$controller@index";
+        $this->apis[$base]["/login"]['post'] = "$controller@login";
+        $this->apis[$base]["/register"]['post'] = "$controller@register";
+        $this->apis[$base]["/create"]['post'] = "$controller@create";
+        $this->apis[$base]["/search"]['post'] = "$controller@search";
+        $this->apis[$base]["/{{$name}}"]['get'] = "$controller@show";
+        $this->apis[$base]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@retrieve";
+        $this->apis[$base]["/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis[$base]["/{{$name}}/force"]['delete'] = "$controller@deleteForce";
+        $this->apis[$base]["/create-many"]['post'] = "$controller@createMany";
+        $this->apis[$base]["/create-fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base]["/create-fake/{count}"]['post'] = "$controller@createFakes";
+
+        $content = str_replace('{{ controller }}', $controller, $content);
+        $content = str_replace('{{ mc }}', $model, $content);
+        $content = str_replace('{{ ms }}', ucfirst($name), $content);
+        $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
+
+        if (array_key_exists($file, $this->apiFiles) === false) {
+            $this->apiFiles[$file] = $content;
+        }
+
+        $data = $this->data['models'][$user] ?? [];
+        $belongsToMany = $this->dataToArray($data, 'relationships.belongsToMany');
+        $morphMany = $this->dataToArray($data, 'relationships.morphMany');
+        $morphOne = $this->dataToArray($data, 'relationships.morphOne');
+        $hasMany = $this->dataToArray($data, 'relationships.hasMany');
+        $hasOne = $this->dataToArray($data, 'relationships.hasOne');
+
+        foreach ([
+            'belongsToMany',
+            'morphMany',
+            'morphOne',
+            'hasMany',
+            'hasOne',
+        ] as $relation) {
+            foreach ($$relation as $model) {
+                $this->generateApiRest($user, $model, $relation);
+            }
+        }
+    }
+    public function generateRelatedApiRest(string $model, string $type, string $parent = null)
     {
         $name = lcfirst($model);
         $relation = ucfirst($type);
         $kebab = '/' . Str::kebab($model);
 
         if (empty($parent)) {
-            $controller = "{$user}Controller";
+            $controller = "{$model}Controller";
         } else {
             $controller = "{$parent}{$relation}{$model}Controller";
         }
@@ -380,20 +447,10 @@ class BuildCommand extends Command
         $file = app_path("Http/Controllers/$controller.php");
         $content = $this->getStub("controller.class.$type");
 
-        if (empty($user) === false) {
-            $base = '/' . Str::kebab($user);
-        } else {
-            $base = '';
-        }
-
         if (isset($parent)) {
-            $path = "/" . Str::kebab($parent);
+            $path = "/" . Str::kebab($parent) . $kebab;
         } else {
-            $path = '';
-        }
-
-        if ($base !== $kebab) {
-            $path .= $kebab;
+            $path = $kebab;
         }
 
         $this->apis[$base][$path]['get'] = "$controller@index";
@@ -408,10 +465,7 @@ class BuildCommand extends Command
         $this->apis[$base][$path]["/create-fake"]['post'] = "$controller@createOneFake";
         $this->apis[$base][$path]["/create-fake/{count}"]['post'] = "$controller@createFakes";
 
-        if ($type === 'auth') {
-            $this->apis[$base][$path]["/login"]['post'] = "$controller@login";
-            $this->apis[$base][$path]["/register"]['post'] = "$controller@register";
-        } elseif ($type === 'belongsToMany') {
+        if ($type === 'belongsToMany') {
             $this->apis[$base][$path]["/sync"]['post'] = "$controller@pivotSync";
             $this->apis[$base][$path]["/attach"]['post'] = "$controller@pivotAttach";
             $this->apis[$base][$path]["/detach"]['post'] = "$controller@pivotDetach";
@@ -420,9 +474,7 @@ class BuildCommand extends Command
             $this->apis[$base][$path]["/sync-without-detaching"]['post'] = "$controller@pivotSyncWithoutDetaching";
         }
 
-        if ($base !== $kebab) {
-            $parent = $model;
-        }
+        $parent = $model;
 
         $content = str_replace('{{ controller }}', $controller, $content);
         $content = str_replace('{{ pc }}', $parent, $content);
@@ -451,7 +503,84 @@ class BuildCommand extends Command
             'hasOne',
         ] as $relation) {
             foreach ($$relation as $model) {
-                $this->generateApiRest($base, $model, $relation, $parent);
+                $this->generateApiRest($user, $model, $relation, $parent);
+            }
+        }
+    }
+
+    public function generateApiRest(string $user, string $model, string $type, string $parent = null)
+    {
+        $name = lcfirst($model);
+        $relation = ucfirst($type);
+        $kebab = '/' . Str::kebab($model);
+        $base = '/' . Str::kebab($user);
+
+        if (empty($parent)) {
+            $controller = "{$model}Controller";
+        } else {
+            $controller = "{$parent}{$relation}{$model}Controller";
+        }
+
+        $file = app_path("Http/Controllers/$controller.php");
+        $content = $this->getStub("controller.class.$type");
+
+        if (isset($parent)) {
+            $path = "/" . Str::kebab($parent) . $kebab;
+        } else {
+            $path = $kebab;
+        }
+
+        $this->apis[$base][$path]['get'] = "$controller@index";
+        $this->apis[$base][$path]["/create"]['post'] = "$controller@create";
+        $this->apis[$base][$path]["/search"]['post'] = "$controller@search";
+        $this->apis[$base][$path]["/{{$name}}"]['get'] = "$controller@show";
+        $this->apis[$base][$path]["/{{$name}}"]['post'] = "$controller@update";
+        $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@retrieve";
+        $this->apis[$base][$path]["/{{$name}}"]['delete'] = "$controller@delete";
+        $this->apis[$base][$path]["/{{$name}}/force"]['delete'] = "$controller@deleteForce";
+        $this->apis[$base][$path]["/create-many"]['post'] = "$controller@createMany";
+        $this->apis[$base][$path]["/create-fake"]['post'] = "$controller@createOneFake";
+        $this->apis[$base][$path]["/create-fake/{count}"]['post'] = "$controller@createFakes";
+
+        if ($type === 'belongsToMany') {
+            $this->apis[$base][$path]["/sync"]['post'] = "$controller@pivotSync";
+            $this->apis[$base][$path]["/attach"]['post'] = "$controller@pivotAttach";
+            $this->apis[$base][$path]["/detach"]['post'] = "$controller@pivotDetach";
+            $this->apis[$base][$path]["/toggle"]['post'] = "$controller@pivotToggle";
+            $this->apis[$base][$path]["/{{$name}}"]['patch'] = "$controller@pivotUpdate";
+            $this->apis[$base][$path]["/sync-without-detaching"]['post'] = "$controller@pivotSyncWithoutDetaching";
+        }
+
+        $parent = $model;
+
+        $content = str_replace('{{ controller }}', $controller, $content);
+        $content = str_replace('{{ pc }}', $parent, $content);
+        $content = str_replace('{{ ps }}', ucfirst($parent), $content);
+        $content = str_replace('{{ pm }}', Str::plural($parent, 2), $content);
+        $content = str_replace('{{ mc }}', $model, $content);
+        $content = str_replace('{{ ms }}', ucfirst($name), $content);
+        $content = str_replace('{{ mm }}', Str::plural($name, 2), $content);
+
+        if (array_key_exists($file, $this->apiFiles) === false) {
+            $this->apiFiles[$file] = $content;
+        }
+
+        $data = $this->data['models'][$model] ?? [];
+        $belongsToMany = $this->dataToArray($data, 'relationships.belongsToMany');
+        $morphMany = $this->dataToArray($data, 'relationships.morphMany');
+        $morphOne = $this->dataToArray($data, 'relationships.morphOne');
+        $hasMany = $this->dataToArray($data, 'relationships.hasMany');
+        $hasOne = $this->dataToArray($data, 'relationships.hasOne');
+
+        foreach ([
+            'belongsToMany',
+            'morphMany',
+            'morphOne',
+            'hasMany',
+            'hasOne',
+        ] as $relation) {
+            foreach ($$relation as $model) {
+                $this->generateApiRest($user, $model, $relation, $parent);
             }
         }
     }
