@@ -2,11 +2,11 @@
 
 get    /user/posts
 post   /user/posts/create
-post   /user/posts/create-many
 post   /user/posts/search
 get    /user/posts/{post}
 post   /user/posts/{post}
 delete /user/posts/{post}
+post   /user/posts/create-many
 post   /user/posts/create-fake
 post   /user/posts/create-fake/{count}
 
@@ -23,8 +23,9 @@ delete /user/post/remove
 get    /post/list
 post   /post/search
 post   /post/create
-post   /post/update
-delete /post/remove
+get    /post/{post}
+post   /post/{post}
+delete /post/{post}
 post   /post/create-many
 post   /post/create-fake
 post   /post/create-fake/{count}
